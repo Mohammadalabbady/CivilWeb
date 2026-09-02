@@ -1,0 +1,82 @@
+@model CivilWeb.Models.CivilDatum
+
+@{
+    var lang = Context.Request.Cookies["Language"] ?? "ar";
+    var isArabic = lang == "ar";
+    ViewData["Title"] = isArabic ? "حذف السجل" : "Delete Record";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "تأكيد الحذف" : "Confirm Delete")</h5>
+            </div>
+            <div class="card-body text-center py-5">
+                <div class="mb-4">
+                    <i class="fas fa-user-times fa-4x text-danger"></i>
+                </div>
+                <h4>@(isArabic ? "هل أنت متأكد من حذف هذا السجل؟" : "Are you sure you want to delete this record?")</h4>
+                <p class="text-muted">@(isArabic ? "هذا الإجراء لا يمكن التراجع عنه." : "This action cannot be undone.")</p>
+
+                <div class="card bg-light mt-4">
+                    <div class="card-body @(isArabic ? "text-end" : "text-start")">
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">@(isArabic ? "الرقم" : "ID")</small>
+                                <p class="mb-2"><code>@Model.Id</code></p>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">@(isArabic ? "الاسم الكامل" : "Full Name")</small>
+                                <p class="mb-2"><strong>@Model.FullName</strong></p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <small class="text-muted">@(isArabic ? "الجنس" : "Gender")</small>
+                                <p class="mb-2">
+                                    @if (Model.Gender == "Male" || Model.Gender == "ذكر" || Model.Gender == "ذكر " || (Model.Gender != null && Model.Gender.Trim() == "ذكر"))
+                                    {
+                                        <span class="badge bg-info"><i class="fas fa-mars @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "ذكر" : "Male")</span>
+                                    }
+                                    else if (Model.Gender == "Female" || Model.Gender == "أنثى" || Model.Gender == "انثى" || (Model.Gender != null && Model.Gender.Trim() == "أنثى"))
+                                    {
+                                        <span class="badge bg-pink" style="background-color: #ec4899;"><i class="fas fa-venus @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "أنثى" : "Female")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@Model.Gender</span>
+                                    }
+                                </p>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted">@(isArabic ? "الحالة" : "Status")</small>
+                                <p class="mb-0">
+                                    @if (Model.Alive == true)
+                                    {
+                                        <span class="badge bg-success"><i class="fas fa-check @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "حي" : "Alive")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary"><i class="fas fa-times @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "متوفى" : "Deceased")</span>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex justify-content-center gap-3">
+                <form asp-action="Delete">
+                    <input type="hidden" asp-for="Id" />
+                    <button type="submit" class="btn btn-danger btn-lg">
+                        <i class="fas fa-trash @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "نعم، احذف السجل" : "Yes, Delete Record")
+                    </button>
+                </form>
+                <a asp-action="Index" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-times @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "إلغاء" : "Cancel")
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

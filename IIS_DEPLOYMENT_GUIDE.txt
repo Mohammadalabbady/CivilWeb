@@ -1,0 +1,118 @@
+================================================================================
+              IIS DEPLOYMENT & IMPLEMENTATION GUIDE - CivilWeb
+================================================================================
+
+1. SYSTEM & SERVER PREREQUISITES
+--------------------------------------------------------------------------------
+- OS: Windows Server 2016 / 2019 / 2022 (or Windows 10/11)
+- Web Server: IIS 10.0+
+- .NET Runtime: ASP.NET Core 10.0 Hosting Bundle (Includes AspNetCoreModuleV2)
+- Database: SQL Server (reachable via network)
+- Administrator privileges on target server
+
+Install ASP.NET Core Hosting Bundle:
+1. Download from: https://dotnet.microsoft.com/download/dotnet/10.0
+2. Look for "Hosting Bundle" under Windows section
+3. Install and restart IIS (iisreset)
+
+
+2. SERVER INSTALLATION STEPS
+--------------------------------------------------------------------------------
+Install IIS via PowerShell (Run as Administrator):
+    Install-WindowsFeature -Name Web-Server, Web-Mgmt-Tools -IncludeManagementTools
+
+Restart IIS after installing Hosting Bundle:
+    iisreset
+
+
+3. DATABASE CONNECTION CONFIGURATION
+--------------------------------------------------------------------------------
+In appsettings.json:
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=YOUR_SQL_SERVER;Initial Catalog=Civil2006;User Id=YOUR_USER;Password=YOUR_PASS;TrustServerCertificate=true"
+  }
+}
+
+
+4. IIS WEBSITE & APP POOL SETUP
+--------------------------------------------------------------------------------
+Step 1: Create Application Pool
+1. In IIS Manager, click "Application Pools"
+2. Right-click -> "Add Application Pool..."
+3. Configure:
+   - Name:                CivilWebPool
+   - .NET CLR version:    No Managed Code  (IMPORTANT for .NET Core!)
+   - Managed pipeline:    Integrated
+4. Click OK
+5. Right-click pool -> "Advanced Settings..."
+   - Start Mode:          AlwaysRunning
+
+Step 2: Create Website
+1. Create directory: C:\inetpub\wwwroot\CivilWeb
+2. Create logs folder: C:\inetpub\wwwroot\CivilWeb\logs
+3. In IIS Manager, right-click "Sites" -> "Add Website..."
+4. Configure:
+   - Site name:           CivilWeb
+   - Application pool:    CivilWebPool
+   - Physical path:       C:\inetpub\wwwroot\CivilWeb
+   - Binding Type:        http / https (Port 80, 7016, or 7014)
+
+Step 3: Set Folder Permissions
+Run PowerShell as Administrator:
+    icacls "C:\inetpub\wwwroot\CivilWeb" /grant "IIS_IUSRS:(OI)(CI)(RX)"
+    icacls "C:\inetpub\wwwroot\CivilWeb\logs" /grant "IIS_IUSRS:(OI)(CI)(M)"
+
+
+5. PUBLISHING AND DEPLOYING
+--------------------------------------------------------------------------------
+Automated PowerShell Deploy Script:
+
+    cd "C:\Users\Laptop\Desktop\civil web\CivilWeb"
+    dotnet publish -c Release -o publish
+
+    Import-Module WebAdministration
+    Stop-WebAppPool -Name 'CivilWebPool'
+    Start-Sleep -Seconds 3
+
+    Copy-Item -Path 'publish\*' -Destination 'C:\inetpub\wwwroot\CivilWeb\' -Recurse -Force
+    Start-WebAppPool -Name 'CivilWebPool'
+
+
+6. WEB.CONFIG REFERENCE
+--------------------------------------------------------------------------------
+Location: C:\inetpub\wwwroot\CivilWeb\web.config
+
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <location path="." inheritInChildApplications="false">
+    <system.webServer>
+      <handlers>
+        <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified" />
+      </handlers>
+      <aspNetCore processPath="dotnet" arguments=".\CivilWeb.dll" stdoutLogEnabled="true" stdoutLogFile=".\logs\stdout" hostingModel="inprocess">
+        <environmentVariables>
+          <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Production" />
+        </environmentVariables>
+      </aspNetCore>
+    </system.webServer>
+  </location>
+</configuration>
+
+
+7. FIREWALL CONFIGURATION
+--------------------------------------------------------------------------------
+Run PowerShell as Administrator:
+    New-NetFirewallRule -DisplayName "CivilWeb HTTP" -Direction Inbound -Protocol TCP -LocalPort 7016 -Action Allow
+    New-NetFirewallRule -DisplayName "CivilWeb HTTPS" -Direction Inbound -Protocol TCP -LocalPort 7014 -Action Allow
+
+
+8. TROUBLESHOOTING
+--------------------------------------------------------------------------------
+- View logs: C:\inetpub\wwwroot\CivilWeb\logs\stdout_*.log
+- 502.5 Error: Install .NET 10.0 Hosting Bundle and restart IIS (iisreset).
+- File Lock Error during deploy: Stop-WebAppPool -Name 'CivilWebPool' before copying files.
+
+================================================================================
+                          END OF DEPLOYMENT GUIDE
+================================================================================

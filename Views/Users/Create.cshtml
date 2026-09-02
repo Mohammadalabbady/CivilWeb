@@ -1,0 +1,105 @@
+@model CivilWeb.Models.UserPermission
+
+@{
+    var lang = Context.Request.Cookies["Language"] ?? "ar";
+    var isArabic = lang == "ar";
+    ViewData["Title"] = isArabic ? "إضافة مستخدم جديد" : "Add New User";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-user-plus @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "إضافة مستخدم جديد" : "Add New User")</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Username" class="form-label">
+                                <i class="fas fa-user @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "اسم المستخدم" : "Username") <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Username" class="form-control" placeholder="@(isArabic ? "DOMAIN\\username" : "DOMAIN\\username")" />
+                            <span asp-validation-for="Username" class="text-danger"></span>
+                            <small class="text-muted">@(isArabic ? "أدخل اسم المستخدم بالصيغة: DOMAIN\\username" : "Enter username in format: DOMAIN\\username")</small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="DisplayName" class="form-label">
+                                <i class="fas fa-id-card @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "الاسم المعروض" : "Display Name")
+                            </label>
+                            <input asp-for="DisplayName" class="form-control" placeholder="@(isArabic ? "الاسم الكامل" : "Full Name")" />
+                            <span asp-validation-for="DisplayName" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-lock @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "كلمة المرور" : "Password") <span class="text-danger">*</span>
+                            </label>
+                            <input type="password" name="NewPassword" class="form-control" placeholder="@(isArabic ? "أدخل كلمة المرور" : "Enter password")" required autocomplete="new-password" />
+                            <span class="text-danger field-validation-valid" data-valmsg-for="NewPassword" data-valmsg-replace="true"></span>
+                            <small class="text-muted">@(isArabic ? "كلمة المرور يجب أن تكون 4 أحرف على الأقل" : "Password must be at least 4 characters")</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Role" class="form-label">
+                                <i class="fas fa-shield-alt @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "الصلاحية" : "Role") <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="Role" class="form-select">
+                                <option value="User">@(isArabic ? "مستخدم عادي" : "Regular User")</option>
+                                <option value="Admin">@(isArabic ? "مدير (صلاحيات كاملة)" : "Administrator (Full Access)")</option>
+                            </select>
+                            <span asp-validation-for="Role" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-toggle-on @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "الحالة" : "Status")
+                            </label>
+                            <div class="form-check form-switch mt-2">
+                                <input asp-for="IsActive" class="form-check-input" type="checkbox" checked />
+                                <label asp-for="IsActive" class="form-check-label">@(isArabic ? "نشط" : "Active")</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Notes" class="form-label">
+                            <i class="fas fa-sticky-note @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "ملاحظات" : "Notes")
+                        </label>
+                        <textarea asp-for="Notes" class="form-control" rows="3" placeholder="@(isArabic ? "ملاحظات إضافية (اختياري)" : "Additional notes (optional)")"></textarea>
+                        <span asp-validation-for="Notes" class="text-danger"></span>
+                    </div>
+
+                    <!-- Role Description -->
+                    <div class="alert alert-info mb-4">
+                        <h6><i class="fas fa-info-circle @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "معلومات الصلاحيات" : "Role Information")</h6>
+                        <ul class="mb-0">
+                            <li><strong>@(isArabic ? "مستخدم عادي:" : "Regular User:")</strong> @(isArabic ? "يمكنه عرض البيانات والبحث فقط" : "Can view and search data only")</li>
+                            <li><strong>@(isArabic ? "مدير:" : "Administrator:")</strong> @(isArabic ? "صلاحيات كاملة (إضافة، تعديل، حذف، تصدير، إدارة المستخدمين)" : "Full access (add, edit, delete, export, manage users)")</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "حفظ" : "Save")
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas @(isArabic ? "fa-arrow-right ms-1" : "fa-arrow-left me-1")"></i>@(isArabic ? "إلغاء" : "Cancel")
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

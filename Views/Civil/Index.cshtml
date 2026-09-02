@@ -1,0 +1,1196 @@
+@model CivilWeb.Models.PaginatedList<CivilWeb.Models.CivilDatum>
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
+
+@{
+    var lang = Context.Request.Cookies["Language"] ?? "ar";
+    var isArabic = lang == "ar";
+    ViewData["Title"] = isArabic ? "بيانات المواطنين" : "Civil Data";
+    var pageSize = (int)(ViewData["PageSize"] ?? 10);
+    var currentSort = ViewData["CurrentSort"] as string;
+    var isAdmin = (await AuthorizationService.AuthorizeAsync(User, "Administrator")).Succeeded;
+}
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --card-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        --card-hover-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        --border-radius: 16px;
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Page Header */
+    .page-header {
+        background: var(--primary-gradient);
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .page-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+        animation: pulse 4s ease-in-out infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 0.5; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+    }
+
+    .page-header h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+    }
+
+    .page-header p {
+        margin: 0.5rem 0 0;
+        opacity: 0.9;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Stats Cards */
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 1.25rem;
+        box-shadow: var(--card-shadow);
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--card-hover-shadow);
+    }
+
+    .stat-card .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: white;
+        margin-bottom: 0.75rem;
+    }
+
+    .stat-card .stat-icon.primary { background: var(--primary-gradient); }
+    .stat-card .stat-icon.success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+    .stat-card .stat-icon.info { background: var(--success-gradient); }
+    .stat-card .stat-icon.warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+
+    .stat-card .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        line-height: 1;
+    }
+
+    .stat-card .stat-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+
+    /* Search Card */
+    .search-card {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .search-header {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .search-header h5 {
+        margin: 0;
+        font-weight: 600;
+        color: #1a1a2e;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .search-header h5 i {
+        color: #667eea;
+    }
+
+    .search-body {
+        padding: 1.5rem;
+    }
+
+    .search-group {
+        margin-bottom: 1rem;
+    }
+
+    .search-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .search-group-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6c757d;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .search-group-title::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, #dee2e6 0%, transparent 100%);
+    }
+
+    /* Form Controls */
+    .form-control, .form-select {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 0.625rem 1rem;
+        font-size: 0.9rem;
+        transition: var(--transition);
+        background-color: #f8f9fa;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        background-color: white;
+    }
+
+    .form-control::placeholder {
+        color: #adb5bd;
+    }
+
+    .form-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.4rem;
+    }
+
+    /* Buttons */
+    .btn-search {
+        background: var(--primary-gradient);
+        border: none;
+        color: white;
+        padding: 0.625rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: var(--transition);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-search:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        color: white;
+    }
+
+    .btn-clear {
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        color: #6c757d;
+        padding: 0.625rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: var(--transition);
+    }
+
+    .btn-clear:hover {
+        background: #e9ecef;
+        border-color: #dee2e6;
+        color: #495057;
+    }
+
+    .btn-action {
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-action.btn-add {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(17, 153, 142, 0.3);
+    }
+
+    .btn-action.btn-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+        color: white;
+    }
+
+    .btn-action.btn-export {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-action.btn-export:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        color: white;
+    }
+
+    /* Data Table Card */
+    .data-card {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+    }
+
+    .data-header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .data-header h5 {
+        margin: 0;
+        font-weight: 600;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .data-header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    /* Table Styles */
+    .table-container {
+        overflow-x: auto;
+    }
+
+    .modern-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .modern-table thead {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+
+    .modern-table thead th {
+        padding: 1rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+        white-space: nowrap;
+    }
+
+    .modern-table tbody tr {
+        transition: var(--transition);
+    }
+
+    .modern-table tbody tr:hover {
+        background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+    }
+
+    .modern-table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f3f4;
+        font-size: 0.9rem;
+        color: #1a1a2e;
+    }
+
+    .modern-table .id-cell {
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+        color: #667eea;
+        font-size: 0.85rem;
+    }
+
+    .modern-table .name-cell {
+        font-weight: 500;
+    }
+
+    /* Badges */
+    .badge-modern {
+        padding: 0.4rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .badge-male {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+    }
+
+    .badge-female {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+    }
+
+    .badge-alive {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+    }
+
+    .badge-deceased {
+        background: #6c757d;
+        color: white;
+    }
+
+    /* Action Buttons in Table */
+    .action-btns {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+
+    .action-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+        font-size: 0.9rem;
+    }
+
+    .action-btn.view {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+    }
+
+    .action-btn.edit {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+    }
+
+    .action-btn.delete {
+        background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+        color: white;
+    }
+
+    .action-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    /* Pagination */
+    .pagination-container {
+        padding: 1rem 1.5rem;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .page-btn {
+        min-width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        border: 2px solid #e9ecef;
+        background: white;
+        color: #495057;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+        text-decoration: none;
+    }
+
+    .page-btn:hover:not(.disabled):not(.active) {
+        border-color: #667eea;
+        color: #667eea;
+        background: white;
+    }
+
+    .page-btn.active {
+        background: var(--primary-gradient);
+        border-color: transparent;
+        color: white;
+    }
+
+    .page-btn.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: #dee2e6;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h4 {
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: #adb5bd;
+    }
+
+    /* Loading Indicator */
+    .search-loading {
+        display: none;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(102, 126, 234, 0.1);
+        border-radius: 20px;
+        color: #667eea;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .search-loading.show {
+        display: inline-flex;
+    }
+
+    /* Responsive */
+    @@media (max-width: 991.98px) {
+        .hide-tablet { display: none !important; }
+    }
+
+    @@media (max-width: 767.98px) {
+        .hide-mobile { display: none !important; }
+
+        .page-header {
+            padding: 1.5rem;
+        }
+
+        .page-header h1 {
+            font-size: 1.25rem;
+        }
+
+        .stats-container {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .stat-card {
+            padding: 1rem;
+        }
+
+        .stat-card .stat-value {
+            font-size: 1.25rem;
+        }
+
+        .search-body {
+            padding: 1rem;
+        }
+
+        .data-header {
+            padding: 1rem;
+        }
+
+        .modern-table thead th,
+        .modern-table tbody td {
+            padding: 0.75rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .action-btn {
+            width: 32px;
+            height: 32px;
+            font-size: 0.8rem;
+        }
+
+        .page-btn {
+            min-width: 36px;
+            height: 36px;
+            font-size: 0.85rem;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .stats-container {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .btn-action {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        .btn-action span {
+            display: none;
+        }
+    }
+
+    /* Sort Icons */
+    .sortable {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .sortable:hover {
+        color: #667eea;
+    }
+
+    .sort-icon {
+        opacity: 0.3;
+        transition: var(--transition);
+    }
+
+    .sortable:hover .sort-icon {
+        opacity: 0.6;
+    }
+
+    .sort-icon.active {
+        opacity: 1;
+        color: #667eea;
+    }
+</style>
+
+<!-- Page Header -->
+<div class="page-header">
+    <h1><i class="fas fa-users @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "نظام السجل المدني" : "Civil Registry System")</h1>
+    <p><i class="fas fa-database @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "إدارة وبحث في سجلات المواطنين" : "Manage and search citizen records")</p>
+</div>
+
+<!-- Stats Cards -->
+<div class="stats-container">
+    <div class="stat-card">
+        <div class="stat-icon primary">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-value" id="totalRecords">@Model.TotalCount.ToString("N0")</div>
+        <div class="stat-label">@(isArabic ? "إجمالي السجلات" : "Total Records")</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon success">
+            <i class="fas fa-eye"></i>
+        </div>
+        <div class="stat-value" id="showingCount">@Model.Count</div>
+        <div class="stat-label">@(isArabic ? "معروض حالياً" : "Showing Now")</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon info">
+            <i class="fas fa-file-alt"></i>
+        </div>
+        <div class="stat-value"><span id="currentPage">@Model.PageIndex</span>/<span id="totalPages">@Model.TotalPages</span></div>
+        <div class="stat-label">@(isArabic ? "الصفحة" : "Page")</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon warning">
+            <i class="fas fa-list-ol"></i>
+        </div>
+        <div class="stat-value" id="pageSizeDisplay">@pageSize</div>
+        <div class="stat-label">@(isArabic ? "لكل صفحة" : "Per Page")</div>
+    </div>
+</div>
+
+<!-- Search Card -->
+<div class="search-card">
+    <div class="search-header">
+        <h5><i class="fas fa-search"></i>@(isArabic ? "البحث المتقدم" : "Advanced Search")</h5>
+        <div class="d-flex align-items-center gap-2">
+            <span id="searchIndicator" class="search-loading">
+                <i class="fas fa-spinner fa-spin"></i>@(isArabic ? "جاري البحث..." : "Searching...")
+            </span>
+            <button class="btn btn-sm btn-light" type="button" data-bs-toggle="collapse" data-bs-target="#searchCollapse" aria-expanded="true">
+                <i class="fas fa-chevron-up"></i>
+            </button>
+        </div>
+    </div>
+    <div class="collapse show" id="searchCollapse">
+        <div class="search-body">
+            <!-- ID & Registration -->
+            <div class="search-group">
+                <div class="search-group-title">
+                    <i class="fas fa-id-card"></i>@(isArabic ? "بحث بالأرقام" : "Search by Numbers")
+                </div>
+                <div class="row g-3">
+                    <div class="col-6 col-md-3">
+                        <label for="searchId" class="form-label">@(isArabic ? "الرقم الوطني" : "National ID")</label>
+                        <input type="text" class="form-control" id="searchId" placeholder="@(isArabic ? "أدخل الرقم..." : "Enter ID...")" autocomplete="off" dir="ltr">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label for="searchRegNumber" class="form-label">@(isArabic ? "رقم التسجيل" : "Registration No.")</label>
+                        <input type="text" class="form-control" id="searchRegNumber" placeholder="@(isArabic ? "رقم التسجيل..." : "Reg. number...")" autocomplete="off" dir="ltr">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label for="searchBirthDate" class="form-label">@(isArabic ? "تاريخ الميلاد" : "Birth Date")</label>
+                        <input type="date" class="form-control" id="searchBirthDate" autocomplete="off">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label for="pageSize" class="form-label">@(isArabic ? "حجم الصفحة" : "Page Size")</label>
+                        <select class="form-select" id="pageSize">
+                            @{
+                                var sizes = new[] { 10, 25, 50, 100 };
+                                foreach (var size in sizes)
+                                {
+                                    if (pageSize == size)
+                                    {
+                                        <option value="@size" selected>@size</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@size">@size</option>
+                                    }
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Names -->
+            <div class="search-group">
+                <div class="search-group-title">
+                    <i class="fas fa-user"></i>@(isArabic ? "بحث بالاسم" : "Search by Name")
+                </div>
+                <div class="row g-3">
+                    <div class="col-6 col-md-3">
+                        <label for="searchFirstName" class="form-label">@(isArabic ? "الاسم الأول" : "First Name")</label>
+                        <input type="text" class="form-control" id="searchFirstName" placeholder="@(isArabic ? "محمد، أحمد..." : "First name...")" autocomplete="off" dir="rtl">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label for="searchSecondName" class="form-label">@(isArabic ? "اسم الأب" : "Father Name")</label>
+                        <input type="text" class="form-control" id="searchSecondName" placeholder="@(isArabic ? "اسم الأب..." : "Father name...")" autocomplete="off" dir="rtl">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label for="searchThirdName" class="form-label">@(isArabic ? "اسم الجد" : "Grandfather")</label>
+                        <input type="text" class="form-control" id="searchThirdName" placeholder="@(isArabic ? "اسم الجد..." : "Grandfather...")" autocomplete="off" dir="rtl">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label for="searchLastName" class="form-label">@(isArabic ? "اسم العائلة" : "Family Name")</label>
+                        <input type="text" class="form-control" id="searchLastName" placeholder="@(isArabic ? "اسم العائلة..." : "Family name...")" autocomplete="off" dir="rtl">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="button" id="clearBtn" class="btn btn-clear">
+                    <i class="fas fa-times @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "مسح الكل" : "Clear All")
+                </button>
+                <button type="button" id="searchBtn" class="btn btn-search">
+                    <i class="fas fa-search @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "بحث" : "Search")
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Table Card -->
+<div class="data-card">
+    <div class="data-header">
+        <h5><i class="fas fa-table @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "سجلات المواطنين" : "Citizen Records")</h5>
+        @if (isAdmin)
+        {
+            <div class="data-header-actions">
+                <a asp-action="Create" class="btn-action btn-add">
+                    <i class="fas fa-plus"></i><span>@(isArabic ? "إضافة سجل" : "Add Record")</span>
+                </a>
+                <a id="exportBtn" asp-action="Export" class="btn-action btn-export">
+                    <i class="fas fa-file-excel"></i><span>@(isArabic ? "تصدير Excel" : "Export Excel")</span>
+                </a>
+            </div>
+        }
+    </div>
+
+    <div class="table-container">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th class="sortable" data-sort="id">
+                        @(isArabic ? "الرقم الوطني" : "National ID")
+                        <i class="fas fa-sort sort-icon @(currentSort == "id" || currentSort == "id_desc" ? "active" : "")" data-sort="id"></i>
+                    </th>
+                    <th class="hide-mobile">@(isArabic ? "رقم التسجيل" : "Reg. No.")</th>
+                    <th class="sortable" data-sort="firstname">
+                        @(isArabic ? "الاسم الأول" : "First Name")
+                        <i class="fas fa-sort sort-icon" data-sort="firstname"></i>
+                    </th>
+                    <th class="sortable hide-mobile" data-sort="secondname">
+                        @(isArabic ? "اسم الأب" : "Father")
+                        <i class="fas fa-sort sort-icon" data-sort="secondname"></i>
+                    </th>
+                    <th class="sortable hide-tablet" data-sort="thirdname">
+                        @(isArabic ? "اسم الجد" : "Grandfather")
+                        <i class="fas fa-sort sort-icon" data-sort="thirdname"></i>
+                    </th>
+                    <th class="sortable" data-sort="lastname">
+                        @(isArabic ? "العائلة" : "Family")
+                        <i class="fas fa-sort sort-icon" data-sort="lastname"></i>
+                    </th>
+                    <th class="sortable hide-mobile" data-sort="gender">
+                        @(isArabic ? "الجنس" : "Gender")
+                        <i class="fas fa-sort sort-icon" data-sort="gender"></i>
+                    </th>
+                    <th class="hide-tablet">@(isArabic ? "تاريخ الميلاد" : "Birth Date")</th>
+                    <th class="sortable hide-mobile" data-sort="alive">
+                        @(isArabic ? "الحالة" : "Status")
+                        <i class="fas fa-sort sort-icon" data-sort="alive"></i>
+                    </th>
+                    <th class="text-center">@(isArabic ? "إجراءات" : "Actions")</th>
+                </tr>
+            </thead>
+            <tbody id="dataTableBody">
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="10">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <h4>@(isArabic ? "لا توجد سجلات" : "No Records Found")</h4>
+                                <p>@(isArabic ? "جرب تغيير معايير البحث" : "Try adjusting your search criteria")</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td class="id-cell">@item.Id</td>
+                        <td class="hide-mobile">@item.RegistrationNumber</td>
+                        <td class="name-cell">@item.FirstName</td>
+                        <td class="hide-mobile">@item.SecondName</td>
+                        <td class="hide-tablet">@item.ThirdName</td>
+                        <td class="name-cell">@item.LastName</td>
+                        <td class="hide-mobile">
+                            @if (item.Gender == "Male" || item.Gender == "ذكر" || (item.Gender != null && item.Gender.Trim() == "ذكر"))
+                            {
+                                <span class="badge-modern badge-male"><i class="fas fa-mars"></i>@(isArabic ? "ذكر" : "Male")</span>
+                            }
+                            else if (item.Gender == "Female" || item.Gender == "أنثى" || (item.Gender != null && item.Gender.Trim() == "أنثى"))
+                            {
+                                <span class="badge-modern badge-female"><i class="fas fa-venus"></i>@(isArabic ? "أنثى" : "Female")</span>
+                            }
+                            else
+                            {
+                                <span class="badge-modern" style="background:#6c757d;color:white;">@item.Gender</span>
+                            }
+                        </td>
+                        <td class="hide-tablet">@item.BirhtOfDate?.ToString("yyyy-MM-dd")</td>
+                        <td class="hide-mobile">
+                            @if (item.Alive == true)
+                            {
+                                <span class="badge-modern badge-alive"><i class="fas fa-heart"></i>@(isArabic ? "حي" : "Alive")</span>
+                            }
+                            else
+                            {
+                                <span class="badge-modern badge-deceased"><i class="fas fa-ribbon"></i>@(isArabic ? "متوفى" : "Deceased")</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="action-btns">
+                                <a href="@Url.Action("Details", new { id = item.Id })" class="action-btn view" title="@(isArabic ? "عرض" : "View")">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                @if (isAdmin)
+                                {
+                                    <a href="@Url.Action("Edit", new { id = item.Id })" class="action-btn edit" title="@(isArabic ? "تعديل" : "Edit")">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="@Url.Action("Delete", new { id = item.Id })" class="action-btn delete" title="@(isArabic ? "حذف" : "Delete")">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    @if (Model.TotalPages > 1)
+    {
+        <div class="pagination-container" id="paginationContainer">
+            <a href="#" class="page-btn page-nav @(!Model.HasPreviousPage ? "disabled" : "")" data-page="1">
+                <i class="fas @(isArabic ? "fa-angle-double-right" : "fa-angle-double-left")"></i>
+            </a>
+            <a href="#" class="page-btn page-nav @(!Model.HasPreviousPage ? "disabled" : "")" data-page="@(Model.PageIndex - 1)">
+                <i class="fas @(isArabic ? "fa-angle-right" : "fa-angle-left")"></i>
+            </a>
+
+            @for (int i = Math.Max(1, Model.PageIndex - 2); i <= Math.Min(Model.TotalPages, Model.PageIndex + 2); i++)
+            {
+                <a href="#" class="page-btn page-nav @(i == Model.PageIndex ? "active" : "")" data-page="@i">@i</a>
+            }
+
+            <a href="#" class="page-btn page-nav @(!Model.HasNextPage ? "disabled" : "")" data-page="@(Model.PageIndex + 1)">
+                <i class="fas @(isArabic ? "fa-angle-left" : "fa-angle-right")"></i>
+            </a>
+            <a href="#" class="page-btn page-nav @(!Model.HasNextPage ? "disabled" : "")" data-page="@Model.TotalPages">
+                <i class="fas @(isArabic ? "fa-angle-double-left" : "fa-angle-double-right")"></i>
+            </a>
+        </div>
+    }
+</div>
+
+@section Scripts {
+<script>
+(function() {
+    const isArabic = @(isArabic ? "true" : "false");
+    const isAdmin = @(isAdmin ? "true" : "false");
+    let currentPage = @Model.PageIndex;
+    let currentPageSize = @pageSize;
+    let currentSort = '@(currentSort ?? "")';
+
+    // Elements
+    const searchIdInput = document.getElementById('searchId');
+    const searchRegNumberInput = document.getElementById('searchRegNumber');
+    const searchFirstNameInput = document.getElementById('searchFirstName');
+    const searchSecondNameInput = document.getElementById('searchSecondName');
+    const searchThirdNameInput = document.getElementById('searchThirdName');
+    const searchLastNameInput = document.getElementById('searchLastName');
+    const searchBirthDateInput = document.getElementById('searchBirthDate');
+    const pageSizeSelect = document.getElementById('pageSize');
+    const searchBtn = document.getElementById('searchBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const tableBody = document.getElementById('dataTableBody');
+    const searchIndicator = document.getElementById('searchIndicator');
+    const showingCountSpan = document.getElementById('showingCount');
+    const totalRecordsSpan = document.getElementById('totalRecords');
+    const currentPageSpan = document.getElementById('currentPage');
+    const totalPagesSpan = document.getElementById('totalPages');
+    const pageSizeDisplay = document.getElementById('pageSizeDisplay');
+    const paginationContainer = document.getElementById('paginationContainer');
+    const exportBtn = document.getElementById('exportBtn');
+
+    async function fetchData(page = 1) {
+        const searchId = searchIdInput.value.trim();
+        const searchRegNumber = searchRegNumberInput.value.trim();
+        const searchFirstName = searchFirstNameInput.value.trim();
+        const searchSecondName = searchSecondNameInput.value.trim();
+        const searchThirdName = searchThirdNameInput.value.trim();
+        const searchLastName = searchLastNameInput.value.trim();
+        const searchBirthDate = searchBirthDateInput.value;
+
+        searchIndicator.classList.add('show');
+        tableBody.style.opacity = '0.5';
+
+        try {
+            const params = new URLSearchParams();
+            if (searchId) params.set('searchId', searchId);
+            if (searchRegNumber) params.set('searchRegNumber', searchRegNumber);
+            if (searchFirstName) params.set('searchFirstName', searchFirstName);
+            if (searchSecondName) params.set('searchSecondName', searchSecondName);
+            if (searchThirdName) params.set('searchThirdName', searchThirdName);
+            if (searchLastName) params.set('searchLastName', searchLastName);
+            if (searchBirthDate) params.set('searchBirthDate', searchBirthDate);
+            params.set('pageNumber', page);
+            params.set('pageSize', currentPageSize);
+            if (currentSort) params.set('sortOrder', currentSort);
+
+            const response = await fetch(`/Civil/Search?${params}`);
+            const result = await response.json();
+
+            renderTable(result.data);
+            currentPage = result.pageIndex;
+            renderPagination(result);
+
+            showingCountSpan.textContent = result.data.length.toLocaleString();
+            totalRecordsSpan.textContent = result.totalCount.toLocaleString();
+            currentPageSpan.textContent = result.pageIndex;
+            totalPagesSpan.textContent = result.totalPages;
+
+            updateExportLink();
+
+        } catch (error) {
+            console.error('Search error:', error);
+        } finally {
+            searchIndicator.classList.remove('show');
+            tableBody.style.opacity = '1';
+        }
+    }
+
+    function renderTable(data) {
+        if (data.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="10">
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <h4>${isArabic ? 'لا توجد سجلات' : 'No Records Found'}</h4>
+                            <p>${isArabic ? 'جرب تغيير معايير البحث' : 'Try adjusting your search criteria'}</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        tableBody.innerHTML = data.map(item => {
+            const genderBadge = (item.gender === 'Male' || item.gender === 'ذكر' || (item.gender && item.gender.trim() === 'ذكر'))
+                ? `<span class="badge-modern badge-male"><i class="fas fa-mars"></i>${isArabic ? 'ذكر' : 'Male'}</span>`
+                : (item.gender === 'Female' || item.gender === 'أنثى' || (item.gender && item.gender.trim() === 'أنثى'))
+                    ? `<span class="badge-modern badge-female"><i class="fas fa-venus"></i>${isArabic ? 'أنثى' : 'Female'}</span>`
+                    : `<span class="badge-modern" style="background:#6c757d;color:white;">${escapeHtml(item.gender || '')}</span>`;
+
+            const statusBadge = item.alive === true
+                ? `<span class="badge-modern badge-alive"><i class="fas fa-heart"></i>${isArabic ? 'حي' : 'Alive'}</span>`
+                : `<span class="badge-modern badge-deceased"><i class="fas fa-ribbon"></i>${isArabic ? 'متوفى' : 'Deceased'}</span>`;
+
+            const adminActions = isAdmin ? `
+                <a href="/Civil/Edit/${encodeURIComponent(item.id)}" class="action-btn edit" title="${isArabic ? 'تعديل' : 'Edit'}">
+                    <i class="fas fa-edit"></i>
+                </a>
+                <a href="/Civil/Delete/${encodeURIComponent(item.id)}" class="action-btn delete" title="${isArabic ? 'حذف' : 'Delete'}">
+                    <i class="fas fa-trash"></i>
+                </a>
+            ` : '';
+
+            return `
+                <tr>
+                    <td class="id-cell">${escapeHtml(item.id)}</td>
+                    <td class="hide-mobile">${escapeHtml(item.registrationNumber || '')}</td>
+                    <td class="name-cell">${escapeHtml(item.firstName || '')}</td>
+                    <td class="hide-mobile">${escapeHtml(item.secondName || '')}</td>
+                    <td class="hide-tablet">${escapeHtml(item.thirdName || '')}</td>
+                    <td class="name-cell">${escapeHtml(item.lastName || '')}</td>
+                    <td class="hide-mobile">${genderBadge}</td>
+                    <td class="hide-tablet">${item.birthDate || ''}</td>
+                    <td class="hide-mobile">${statusBadge}</td>
+                    <td>
+                        <div class="action-btns">
+                            <a href="/Civil/Details/${encodeURIComponent(item.id)}" class="action-btn view" title="${isArabic ? 'عرض' : 'View'}">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            ${adminActions}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderPagination(result) {
+        if (!paginationContainer) return;
+
+        if (result.totalPages <= 1) {
+            paginationContainer.innerHTML = '';
+            return;
+        }
+
+        let pagesHtml = '';
+        const start = Math.max(1, result.pageIndex - 2);
+        const end = Math.min(result.totalPages, result.pageIndex + 2);
+
+        for (let i = start; i <= end; i++) {
+            pagesHtml += `<a href="#" class="page-btn page-nav ${i === result.pageIndex ? 'active' : ''}" data-page="${i}">${i}</a>`;
+        }
+
+        const firstIcon = isArabic ? 'fa-angle-double-right' : 'fa-angle-double-left';
+        const prevIcon = isArabic ? 'fa-angle-right' : 'fa-angle-left';
+        const nextIcon = isArabic ? 'fa-angle-left' : 'fa-angle-right';
+        const lastIcon = isArabic ? 'fa-angle-double-left' : 'fa-angle-double-right';
+
+        paginationContainer.innerHTML = `
+            <a href="#" class="page-btn page-nav ${!result.hasPreviousPage ? 'disabled' : ''}" data-page="1">
+                <i class="fas ${firstIcon}"></i>
+            </a>
+            <a href="#" class="page-btn page-nav ${!result.hasPreviousPage ? 'disabled' : ''}" data-page="${result.pageIndex - 1}">
+                <i class="fas ${prevIcon}"></i>
+            </a>
+            ${pagesHtml}
+            <a href="#" class="page-btn page-nav ${!result.hasNextPage ? 'disabled' : ''}" data-page="${result.pageIndex + 1}">
+                <i class="fas ${nextIcon}"></i>
+            </a>
+            <a href="#" class="page-btn page-nav ${!result.hasNextPage ? 'disabled' : ''}" data-page="${result.totalPages}">
+                <i class="fas ${lastIcon}"></i>
+            </a>
+        `;
+
+        attachPaginationListeners();
+    }
+
+    function updateExportLink() {
+        if (!exportBtn) return;
+
+        const params = new URLSearchParams();
+        const searchId = searchIdInput.value.trim();
+        const searchRegNumber = searchRegNumberInput.value.trim();
+        const searchFirstName = searchFirstNameInput.value.trim();
+        const searchSecondName = searchSecondNameInput.value.trim();
+        const searchThirdName = searchThirdNameInput.value.trim();
+        const searchLastName = searchLastNameInput.value.trim();
+        const searchBirthDate = searchBirthDateInput.value;
+
+        if (searchId) params.set('searchId', searchId);
+        if (searchRegNumber) params.set('searchRegNumber', searchRegNumber);
+        if (searchFirstName) params.set('searchFirstName', searchFirstName);
+        if (searchSecondName) params.set('searchSecondName', searchSecondName);
+        if (searchThirdName) params.set('searchThirdName', searchThirdName);
+        if (searchLastName) params.set('searchLastName', searchLastName);
+        if (searchBirthDate) params.set('searchBirthDate', searchBirthDate);
+        if (currentSort) params.set('sortOrder', currentSort);
+
+        exportBtn.href = `/Civil/Export?${params}`;
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function updateSortIcons() {
+        document.querySelectorAll('.sort-icon').forEach(icon => {
+            const sort = icon.dataset.sort;
+            icon.classList.remove('fa-sort-up', 'fa-sort-down', 'active');
+            icon.classList.add('fa-sort');
+
+            if (currentSort === sort) {
+                icon.classList.remove('fa-sort');
+                icon.classList.add('fa-sort-up', 'active');
+            } else if (currentSort === sort + '_desc') {
+                icon.classList.remove('fa-sort');
+                icon.classList.add('fa-sort-down', 'active');
+            }
+        });
+    }
+
+    function attachPaginationListeners() {
+        document.querySelectorAll('.page-nav').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (this.classList.contains('disabled')) return;
+                const page = parseInt(this.dataset.page);
+                if (page && page !== currentPage) {
+                    fetchData(page);
+                }
+            });
+        });
+    }
+
+    // Event Listeners
+    searchBtn.addEventListener('click', () => fetchData(1));
+
+    const searchInputs = [searchIdInput, searchRegNumberInput, searchFirstNameInput, searchSecondNameInput, searchThirdNameInput, searchLastNameInput, searchBirthDateInput];
+    searchInputs.forEach(input => {
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                fetchData(1);
+            }
+        });
+    });
+
+    pageSizeSelect.addEventListener('change', function() {
+        currentPageSize = parseInt(this.value);
+        pageSizeDisplay.textContent = currentPageSize;
+        fetchData(1);
+    });
+
+    clearBtn.addEventListener('click', function() {
+        searchIdInput.value = '';
+        searchRegNumberInput.value = '';
+        searchFirstNameInput.value = '';
+        searchSecondNameInput.value = '';
+        searchThirdNameInput.value = '';
+        searchLastNameInput.value = '';
+        searchBirthDateInput.value = '';
+        currentSort = '';
+        updateSortIcons();
+        fetchData(1);
+    });
+
+    document.querySelectorAll('.sortable').forEach(header => {
+        header.addEventListener('click', function(e) {
+            e.preventDefault();
+            const sort = this.dataset.sort;
+            if (!sort) return;
+
+            if (currentSort === sort) {
+                currentSort = sort + '_desc';
+            } else if (currentSort === sort + '_desc') {
+                currentSort = sort;
+            } else {
+                currentSort = sort;
+            }
+
+            updateSortIcons();
+            fetchData(currentPage);
+        });
+    });
+
+    // Collapse icon toggle
+    const collapseEl = document.getElementById('searchCollapse');
+    if (collapseEl) {
+        collapseEl.addEventListener('show.bs.collapse', function() {
+            document.querySelector('[data-bs-target="#searchCollapse"] i').classList.replace('fa-chevron-down', 'fa-chevron-up');
+        });
+        collapseEl.addEventListener('hide.bs.collapse', function() {
+            document.querySelector('[data-bs-target="#searchCollapse"] i').classList.replace('fa-chevron-up', 'fa-chevron-down');
+        });
+    }
+
+    attachPaginationListeners();
+    updateSortIcons();
+    updateExportLink();
+})();
+</script>
+}

@@ -1,0 +1,158 @@
+@model CivilWeb.Models.CivilDatum
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
+
+@{
+    var lang = Context.Request.Cookies["Language"] ?? "ar";
+    var isArabic = lang == "ar";
+    ViewData["Title"] = isArabic ? "تفاصيل السجل" : "Record Details";
+
+    // Check if user is administrator
+    var isAdmin = (await AuthorizationService.AuthorizeAsync(User, "Administrator")).Succeeded;
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-user @(isArabic ? "ms-2" : "me-2")"></i>@Model.FullName</h5>
+                <div>
+                    @if (Model.Alive == true)
+                    {
+                        <span class="badge bg-success fs-6"><i class="fas fa-check @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "حي" : "Alive")</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary fs-6"><i class="fas fa-times @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "متوفى" : "Deceased")</span>
+                    }
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3"><i class="fas fa-fingerprint @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "التعريف" : "Identification")</h6>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td class="text-muted" style="width: 40%;">@(isArabic ? "الرقم" : "ID")</td>
+                                <td><code class="fs-6">@Model.Id</code></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">@(isArabic ? "رقم التسجيل" : "Registration No.")</td>
+                                <td><strong>@(Model.RegistrationNumber ?? (isArabic ? "غير متاح" : "N/A"))</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3"><i class="fas fa-info-circle @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "الحالة" : "Status")</h6>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td class="text-muted" style="width: 40%;">@(isArabic ? "الجنس" : "Gender")</td>
+                                <td>
+                                    @if (Model.Gender == "Male" || Model.Gender == "ذكر" || Model.Gender == "ذكر " || (Model.Gender != null && Model.Gender.Trim() == "ذكر"))
+                                    {
+                                        <span class="badge bg-info"><i class="fas fa-mars @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "ذكر" : "Male")</span>
+                                    }
+                                    else if (Model.Gender == "Female" || Model.Gender == "أنثى" || Model.Gender == "انثى" || (Model.Gender != null && Model.Gender.Trim() == "أنثى"))
+                                    {
+                                        <span class="badge bg-pink" style="background-color: #ec4899;"><i class="fas fa-venus @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "أنثى" : "Female")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@Model.Gender</span>
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">@(isArabic ? "تاريخ الميلاد" : "Date of Birth")</td>
+                                <td><strong>@(Model.BirhtOfDate?.ToString("yyyy-MM-dd") ?? (isArabic ? "غير متاح" : "N/A"))</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <h6 class="text-muted mb-3"><i class="fas fa-user @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "المعلومات الشخصية" : "Personal Information")</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td class="text-muted" style="width: 40%;">@(isArabic ? "الاسم الأول" : "First Name")</td>
+                                <td><strong>@(Model.FirstName ?? (isArabic ? "غير متاح" : "N/A"))</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">@(isArabic ? "اسم الأب" : "Father's Name")</td>
+                                <td><strong>@(Model.SecondName ?? (isArabic ? "غير متاح" : "N/A"))</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">@(isArabic ? "اسم الجد" : "Grandfather's Name")</td>
+                                <td><strong>@(Model.ThirdName ?? (isArabic ? "غير متاح" : "N/A"))</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td class="text-muted" style="width: 40%;">@(isArabic ? "اسم العائلة" : "Last Name")</td>
+                                <td><strong>@(Model.LastName ?? (isArabic ? "غير متاح" : "N/A"))</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">@(isArabic ? "الاسم الكامل" : "Full Name")</td>
+                                <td><strong>@(Model.FullName ?? (isArabic ? "غير متاح" : "N/A"))</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="d-flex gap-2">
+                    @if (isAdmin)
+                    {
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                            <i class="fas fa-edit @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "تعديل السجل" : "Edit Record")
+                        </a>
+                        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">
+                            <i class="fas fa-trash @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "حذف السجل" : "Delete Record")
+                        </a>
+                    }
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas @(isArabic ? "fa-arrow-right ms-1" : "fa-arrow-left me-1")"></i>@(isArabic ? "العودة للقائمة" : "Back to List")
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-pie @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "إحصائيات سريعة" : "Quick Stats")</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stat-icon bg-primary bg-opacity-10 text-primary rounded p-3 @(isArabic ? "ms-3" : "me-3")">
+                        <i class="fas fa-id-card fa-lg"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted">@(isArabic ? "رقم السجل" : "Record ID")</small>
+                        <h6 class="mb-0">@Model.Id</h6>
+                    </div>
+                </div>
+                @if (Model.BirhtOfDate.HasValue)
+                {
+                    var age = DateTime.Now.Year - Model.BirhtOfDate.Value.Year;
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="stat-icon bg-success bg-opacity-10 text-success rounded p-3 @(isArabic ? "ms-3" : "me-3")">
+                            <i class="fas fa-birthday-cake fa-lg"></i>
+                        </div>
+                        <div>
+                            <small class="text-muted">@(isArabic ? "العمر" : "Age")</small>
+                            <h6 class="mb-0">@age @(isArabic ? "سنة" : "years")</h6>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

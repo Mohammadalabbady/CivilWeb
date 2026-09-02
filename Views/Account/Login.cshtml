@@ -1,0 +1,578 @@
+@model CivilWeb.Models.LoginViewModel
+@{
+    var lang = Context.Request.Cookies["Language"] ?? "ar";
+    var isArabic = lang == "ar";
+    ViewData["Title"] = isArabic ? "تسجيل الدخول" : "Login";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="@(isArabic ? "ar" : "en")" dir="@(isArabic ? "rtl" : "ltr")">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@(isArabic ? "تسجيل الدخول - نظام السجل المدني" : "Login - Civil Registry System")</title>
+    @if (isArabic)
+    {
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet" />
+    }
+    else
+    {
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    }
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e293b;
+            --light: #f8fafc;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: @(isArabic ? "'Cairo'" : "'Inter'"), sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #1e293b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated background */
+        body::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(79, 70, 229, 0.1) 0%, transparent 50%);
+            animation: pulse 15s ease-in-out infinite;
+        }
+
+        @@keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* Floating shapes */
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.1;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .shape-1 {
+            width: 400px;
+            height: 400px;
+            background: var(--primary);
+            top: -100px;
+            right: -100px;
+            animation-delay: 0s;
+        }
+
+        .shape-2 {
+            width: 300px;
+            height: 300px;
+            background: var(--success);
+            bottom: -50px;
+            left: -50px;
+            animation-delay: -5s;
+        }
+
+        .shape-3 {
+            width: 200px;
+            height: 200px;
+            background: var(--warning);
+            top: 50%;
+            left: 10%;
+            animation-delay: -10s;
+        }
+
+        .shape-4 {
+            width: 150px;
+            height: 150px;
+            background: var(--primary);
+            bottom: 20%;
+            right: 10%;
+            animation-delay: -15s;
+        }
+
+        @@keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-30px) rotate(10deg); }
+        }
+
+        .main-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 450px;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Logo */
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px;
+            box-shadow: 0 15px 50px rgba(79, 70, 229, 0.5);
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+
+        @@keyframes logoFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .logo-icon i {
+            font-size: 38px;
+            color: white;
+        }
+
+        .logo h1 {
+            color: white;
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin: 0;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .logo p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.95rem;
+            margin: 6px 0 0;
+        }
+
+        /* Card */
+        .card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.35);
+            overflow: hidden;
+            border: none;
+        }
+
+        .card-body {
+            padding: 40px;
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .input-group {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            top: 50%;
+            @(isArabic ? "right" : "left"): 16px;
+            transform: translateY(-50%);
+            color: var(--secondary);
+            font-size: 1.1rem;
+            z-index: 10;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 16px 14px 48px;
+            @if (isArabic)
+            {
+                <text>padding: 14px 48px 14px 16px;</text>
+            }
+            font-size: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        }
+
+        .form-control.is-invalid {
+            border-color: var(--danger);
+        }
+
+        /* Checkbox */
+        .form-check {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .form-check-input {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .form-check-input:checked {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .form-check-label {
+            color: var(--secondary);
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        /* Error message */
+        .alert-danger {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            border: 1px solid #fecaca;
+            color: var(--danger);
+            padding: 14px 18px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-danger i {
+            font-size: 1.1rem;
+        }
+
+        /* Button */
+        .btn {
+            padding: 16px 32px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 14px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            box-shadow: 0 10px 30px rgba(79, 70, 229, 0.35);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(79, 70, 229, 0.45);
+        }
+
+        .btn-primary:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        /* Language Toggle */
+        .language-toggle {
+            position: absolute;
+            top: 20px;
+            @(isArabic ? "left" : "right"): 20px;
+            z-index: 100;
+        }
+
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .lang-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        /* Copyright */
+        .copyright {
+            text-align: center;
+            margin-top: 25px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.85rem;
+        }
+
+        /* Validation */
+        .field-validation-error {
+            color: var(--danger);
+            font-size: 0.85rem;
+            margin-top: 6px;
+            display: block;
+        }
+
+        /* Language Section in Card */
+        .language-section {
+            margin-top: 28px;
+            padding-top: 24px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .language-divider {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .language-divider span {
+            color: var(--secondary);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .language-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .lang-button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            background: #f1f5f9;
+            border: 2px solid transparent;
+            color: var(--dark);
+            flex: 1;
+            justify-content: center;
+            max-width: 160px;
+        }
+
+        .lang-button:hover {
+            background: #e2e8f0;
+            color: var(--dark);
+        }
+
+        .lang-button.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+        }
+
+        .lang-flag {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .lang-name {
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        /* Responsive */
+        @@media (max-width: 480px) {
+            .card-body {
+                padding: 30px 25px;
+            }
+
+            .logo h1 {
+                font-size: 1.4rem;
+            }
+
+            .btn {
+                padding: 14px 24px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Language Toggle -->
+    <div class="language-toggle">
+        @if (isArabic)
+        {
+            <a href="/Language/SetLanguage?lang=en&returnUrl=/Account/Login" class="lang-btn">
+                <i class="fas fa-globe"></i> English
+            </a>
+        }
+        else
+        {
+            <a href="/Language/SetLanguage?lang=ar&returnUrl=/Account/Login" class="lang-btn">
+                <i class="fas fa-globe"></i> العربية
+            </a>
+        }
+    </div>
+
+    <!-- Floating shapes -->
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+    <div class="shape shape-4"></div>
+
+    <div class="main-container">
+        <!-- Logo -->
+        <div class="logo">
+            <div class="logo-icon">
+                <i class="fas fa-building-columns"></i>
+            </div>
+            <h1>@(isArabic ? "نظام السجل المدني" : "Civil Registry System")</h1>
+            <p>@(isArabic ? "تسجيل الدخول إلى حسابك" : "Sign in to your account")</p>
+        </div>
+
+        <!-- Card -->
+        <div class="card">
+            <div class="card-body">
+                <!-- Error Messages -->
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    var errors = ViewData.ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).FirstOrDefault();
+                    if (!string.IsNullOrEmpty(errors))
+                    {
+                        <div class="alert-danger">
+                            <i class="fas fa-exclamation-circle"></i>
+                            @errors
+                        </div>
+                    }
+                }
+
+                <form method="post" asp-action="Login" asp-controller="Account">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="ReturnUrl" value="@ViewData["ReturnUrl"]" />
+
+                    <!-- Username -->
+                    <div class="form-group">
+                        <label class="form-label" for="Username">
+                            @(isArabic ? "اسم المستخدم" : "Username")
+                        </label>
+                        <div class="input-group">
+                            <i class="fas fa-user input-icon"></i>
+                            <input type="text"
+                                   asp-for="Username"
+                                   class="form-control"
+                                   placeholder="@(isArabic ? "أدخل اسم المستخدم" : "Enter your username")"
+                                   autocomplete="username"
+                                   autofocus />
+                        </div>
+                        <span asp-validation-for="Username" class="field-validation-error"></span>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="form-group">
+                        <label class="form-label" for="Password">
+                            @(isArabic ? "كلمة المرور" : "Password")
+                        </label>
+                        <div class="input-group">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input type="password"
+                                   asp-for="Password"
+                                   class="form-control"
+                                   placeholder="@(isArabic ? "أدخل كلمة المرور" : "Enter your password")"
+                                   autocomplete="current-password" />
+                        </div>
+                        <span asp-validation-for="Password" class="field-validation-error"></span>
+                    </div>
+
+                    <!-- Remember Me -->
+                    <div class="form-check">
+                        <input type="checkbox" asp-for="RememberMe" class="form-check-input" />
+                        <label class="form-check-label" asp-for="RememberMe">
+                            @(isArabic ? "تذكرني" : "Remember me")
+                        </label>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-sign-in-alt"></i>
+                        @(isArabic ? "تسجيل الدخول" : "Sign In")
+                    </button>
+                </form>
+
+                <!-- Language Switcher -->
+                <div class="language-section">
+                    <div class="language-divider">
+                        <span>@(isArabic ? "اختر اللغة" : "Select Language")</span>
+                    </div>
+                    <div class="language-buttons">
+                        <a href="/Language/SetLanguage?lang=ar&returnUrl=/Account/Login" class="lang-button @(isArabic ? "active" : "")">
+                            <span class="lang-flag">ع</span>
+                            <span class="lang-name">العربية</span>
+                        </a>
+                        <a href="/Language/SetLanguage?lang=en&returnUrl=/Account/Login" class="lang-button @(!isArabic ? "active" : "")">
+                            <span class="lang-flag">EN</span>
+                            <span class="lang-name">English</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Copyright -->
+        <p class="copyright">
+            &copy; @DateTime.Now.Year @(isArabic ? "نظام السجل المدني. جميع الحقوق محفوظة." : "Civil Registry System. All rights reserved.")
+        </p>
+    </div>
+</body>
+</html>

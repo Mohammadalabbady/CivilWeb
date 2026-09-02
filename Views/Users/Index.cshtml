@@ -1,0 +1,239 @@
+@model IEnumerable<CivilWeb.Models.UserPermission>
+
+@{
+    var lang = Context.Request.Cookies["Language"] ?? "ar";
+    var isArabic = lang == "ar";
+    ViewData["Title"] = isArabic ? "إدارة المستخدمين" : "User Management";
+    var totalUsers = (int)(ViewData["TotalUsers"] ?? 0);
+    var adminCount = (int)(ViewData["AdminCount"] ?? 0);
+    var userCount = (int)(ViewData["UserCount"] ?? 0);
+    var activeCount = (int)(ViewData["ActiveCount"] ?? 0);
+    var inactiveCount = (int)(ViewData["InactiveCount"] ?? 0);
+}
+
+<!-- Success/Error Messages -->
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle @(isArabic ? "ms-2" : "me-2")"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle @(isArabic ? "ms-2" : "me-2")"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="stat-icon bg-primary bg-opacity-10 text-primary rounded-3 p-3">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 @(isArabic ? "me-3" : "ms-3")">
+                        <h3 class="mb-0">@totalUsers</h3>
+                        <p class="text-muted mb-0">@(isArabic ? "إجمالي المستخدمين" : "Total Users")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="stat-icon bg-danger bg-opacity-10 text-danger rounded-3 p-3">
+                            <i class="fas fa-user-shield fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 @(isArabic ? "me-3" : "ms-3")">
+                        <h3 class="mb-0">@adminCount</h3>
+                        <p class="text-muted mb-0">@(isArabic ? "المديرون" : "Administrators")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="stat-icon bg-info bg-opacity-10 text-info rounded-3 p-3">
+                            <i class="fas fa-user fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 @(isArabic ? "me-3" : "ms-3")">
+                        <h3 class="mb-0">@userCount</h3>
+                        <p class="text-muted mb-0">@(isArabic ? "المستخدمون" : "Regular Users")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="stat-icon bg-success bg-opacity-10 text-success rounded-3 p-3">
+                            <i class="fas fa-user-check fa-2x"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 @(isArabic ? "me-3" : "ms-3")">
+                        <h3 class="mb-0">@activeCount</h3>
+                        <p class="text-muted mb-0">@(isArabic ? "نشط" : "Active")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Actions Row -->
+<div class="row mb-4">
+    <div class="col-12">
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-user-plus @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "إضافة مستخدم جديد" : "Add New User")
+        </a>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+    <div class="card-header">
+        <h5><i class="fas fa-users-cog @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "قائمة المستخدمين" : "Users List")</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th><i class="fas fa-user @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "اسم المستخدم" : "Username")</th>
+                        <th>@(isArabic ? "الاسم المعروض" : "Display Name")</th>
+                        <th><i class="fas fa-shield-alt @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "الصلاحية" : "Role")</th>
+                        <th><i class="fas fa-toggle-on @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "الحالة" : "Status")</th>
+                        <th><i class="fas fa-clock @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "آخر دخول" : "Last Login")</th>
+                        <th><i class="fas fa-sign-in-alt @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "عدد الدخول" : "Login Count")</th>
+                        <th class="text-center">@(isArabic ? "الإجراءات" : "Actions")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+                                <p class="text-muted mb-0">@(isArabic ? "لا يوجد مستخدمين" : "No users found")</p>
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var item in Model)
+                    {
+                        var isCurrentUser = item.Username.Equals(User.Identity?.Name, StringComparison.OrdinalIgnoreCase);
+                        <tr class="@(!item.IsActive ? "table-secondary" : "")">
+                            <td>@item.Id</td>
+                            <td>
+                                <code>@item.Username</code>
+                                @if (isCurrentUser)
+                                {
+                                    <span class="badge bg-info @(isArabic ? "me-1" : "ms-1")">@(isArabic ? "أنت" : "You")</span>
+                                }
+                            </td>
+                            <td>@(item.DisplayName ?? "-")</td>
+                            <td>
+                                @if (item.Role == "Admin")
+                                {
+                                    <span class="badge bg-danger"><i class="fas fa-shield-alt @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "مدير" : "Admin")</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary"><i class="fas fa-user @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "مستخدم" : "User")</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.IsActive)
+                                {
+                                    <span class="badge bg-success"><i class="fas fa-check @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "نشط" : "Active")</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark"><i class="fas fa-ban @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "معطل" : "Inactive")</span>
+                                }
+                            </td>
+                            <td>
+                                @if (item.LastLoginDate.HasValue)
+                                {
+                                    @item.LastLoginDate.Value.ToString("yyyy-MM-dd HH:mm")
+                                }
+                                else
+                                {
+                                    <span class="text-muted">@(isArabic ? "لم يسجل دخول" : "Never")</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-primary">@item.LoginCount</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning" title="@(isArabic ? "تعديل" : "Edit")">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    @if (!isCurrentUser)
+                                    {
+                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-danger" title="@(isArabic ? "حذف" : "Delete")">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm @(item.IsActive ? "btn-secondary" : "btn-success") toggle-active-btn"
+                                                data-id="@item.Id" title="@(item.IsActive ? (isArabic ? "تعطيل" : "Deactivate") : (isArabic ? "تفعيل" : "Activate"))">
+                                            <i class="fas @(item.IsActive ? "fa-ban" : "fa-check")"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    document.querySelectorAll('.toggle-active-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const id = this.dataset.id;
+            const isArabic = @(isArabic ? "true" : "false");
+
+            try {
+                const response = await fetch(`/Users/ToggleActive/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    }
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+    });
+</script>
+}

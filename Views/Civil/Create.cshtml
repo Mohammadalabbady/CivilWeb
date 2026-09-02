@@ -1,0 +1,130 @@
+@model CivilWeb.Models.CivilDatum
+
+@{
+    var lang = Context.Request.Cookies["Language"] ?? "ar";
+    var isArabic = lang == "ar";
+    ViewData["Title"] = isArabic ? "إضافة سجل جديد" : "Add New Record";
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-user-plus @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "إضافة سجل مدني جديد" : "Add New Civil Record")</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Id" class="form-label"><i class="fas fa-fingerprint @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "الرقم" : "ID") <span class="text-danger">*</span></label>
+                            <input asp-for="Id" class="form-control" placeholder="@(isArabic ? "أدخل الرقم الفريد" : "Enter unique ID")" />
+                            <span asp-validation-for="Id" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="RegistrationNumber" class="form-label"><i class="fas fa-hashtag @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "رقم التسجيل" : "Registration Number")</label>
+                            <input asp-for="RegistrationNumber" class="form-control" placeholder="@(isArabic ? "أدخل رقم التسجيل" : "Enter registration number")" />
+                            <span asp-validation-for="RegistrationNumber" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6 class="text-muted mb-3"><i class="fas fa-user @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "المعلومات الشخصية" : "Personal Information")</h6>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="FirstName" class="form-label">@(isArabic ? "الاسم الأول" : "First Name")</label>
+                            <input asp-for="FirstName" class="form-control" placeholder="@(isArabic ? "أدخل الاسم الأول" : "Enter first name")" />
+                            <span asp-validation-for="FirstName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="SecondName" class="form-label">@(isArabic ? "اسم الأب" : "Father's Name")</label>
+                            <input asp-for="SecondName" class="form-control" placeholder="@(isArabic ? "أدخل اسم الأب" : "Enter father's name")" />
+                            <span asp-validation-for="SecondName" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="ThirdName" class="form-label">@(isArabic ? "اسم الجد" : "Grandfather's Name")</label>
+                            <input asp-for="ThirdName" class="form-control" placeholder="@(isArabic ? "أدخل اسم الجد" : "Enter grandfather's name")" />
+                            <span asp-validation-for="ThirdName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="LastName" class="form-label">@(isArabic ? "اسم العائلة" : "Last Name")</label>
+                            <input asp-for="LastName" class="form-control" placeholder="@(isArabic ? "أدخل اسم العائلة" : "Enter last name")" />
+                            <span asp-validation-for="LastName" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="FullName" class="form-label">@(isArabic ? "الاسم الكامل" : "Full Name")</label>
+                        <input asp-for="FullName" class="form-control" placeholder="@(isArabic ? "أدخل الاسم الكامل" : "Enter full name")" />
+                        <span asp-validation-for="FullName" class="text-danger small"></span>
+                    </div>
+
+                    <hr class="my-4">
+                    <h6 class="text-muted mb-3"><i class="fas fa-info-circle @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "معلومات إضافية" : "Additional Information")</h6>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="BirhtOfDate" class="form-label"><i class="fas fa-calendar @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "تاريخ الميلاد" : "Date of Birth")</label>
+                            <input asp-for="BirhtOfDate" type="date" class="form-control" />
+                            <span asp-validation-for="BirhtOfDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Gender" class="form-label"><i class="fas fa-venus-mars @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "الجنس" : "Gender")</label>
+                            <select asp-for="Gender" class="form-select">
+                                <option value="">@(isArabic ? "اختر الجنس" : "Select Gender")</option>
+                                <option value="ذكر">@(isArabic ? "ذكر" : "Male")</option>
+                                <option value="أنثى">@(isArabic ? "أنثى" : "Female")</option>
+                            </select>
+                            <span asp-validation-for="Gender" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label asp-for="Alive" class="form-label"><i class="fas fa-heart-pulse @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "الحالة" : "Status")</label>
+                            <select asp-for="Alive" class="form-select">
+                                <option value="">@(isArabic ? "اختر الحالة" : "Select Status")</option>
+                                <option value="true">@(isArabic ? "حي" : "Alive")</option>
+                                <option value="false">@(isArabic ? "متوفى" : "Deceased")</option>
+                            </select>
+                            <span asp-validation-for="Alive" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "حفظ السجل" : "Save Record")
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas @(isArabic ? "fa-arrow-right ms-1" : "fa-arrow-left me-1")"></i>@(isArabic ? "العودة للقائمة" : "Back to List")
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "مساعدة" : "Help")</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">@(isArabic ? "يرجى ملء جميع الحقول المطلوبة المميزة بـ" : "Please fill all required fields marked with") <span class="text-danger">*</span></p>
+                <ul class="text-muted small">
+                    <li>@(isArabic ? "الرقم يجب أن يكون فريداً" : "ID must be unique")</li>
+                    <li>@(isArabic ? "الأسماء يجب ألا تتجاوز 50 حرفاً" : "Names must not exceed 50 characters")</li>
+                    <li>@(isArabic ? "الاسم الكامل يجب ألا يتجاوز 200 حرف" : "Full name must not exceed 200 characters")</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

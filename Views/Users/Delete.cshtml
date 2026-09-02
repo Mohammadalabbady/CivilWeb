@@ -1,0 +1,72 @@
+@model CivilWeb.Models.UserPermission
+
+@{
+    var lang = Context.Request.Cookies["Language"] ?? "ar";
+    var isArabic = lang == "ar";
+    ViewData["Title"] = isArabic ? "حذف المستخدم" : "Delete User";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "تأكيد الحذف" : "Confirm Delete")</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle @(isArabic ? "ms-2" : "me-2")"></i>
+                    @(isArabic ? "هل أنت متأكد من حذف هذا المستخدم؟ لا يمكن التراجع عن هذا الإجراء." : "Are you sure you want to delete this user? This action cannot be undone.")
+                </div>
+
+                <div class="card bg-light mb-4">
+                    <div class="card-body">
+                        <h6 class="card-title"><i class="fas fa-user @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "معلومات المستخدم" : "User Details")</h6>
+                        <table class="table table-borderless mb-0">
+                            <tr>
+                                <td class="text-muted" style="width: 40%;">@(isArabic ? "اسم المستخدم" : "Username")</td>
+                                <td><code>@Model.Username</code></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">@(isArabic ? "الاسم المعروض" : "Display Name")</td>
+                                <td><strong>@(Model.DisplayName ?? "-")</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">@(isArabic ? "الصلاحية" : "Role")</td>
+                                <td>
+                                    @if (Model.Role == "Admin")
+                                    {
+                                        <span class="badge bg-danger"><i class="fas fa-shield-alt @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "مدير" : "Admin")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary"><i class="fas fa-user @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "مستخدم" : "User")</span>
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">@(isArabic ? "تاريخ الإنشاء" : "Created Date")</td>
+                                <td>@Model.CreatedDate.ToString("yyyy-MM-dd HH:mm")</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">@(isArabic ? "عدد مرات الدخول" : "Login Count")</td>
+                                <td>@Model.LoginCount</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <form asp-action="Delete" method="post">
+                    <input type="hidden" asp-for="Id" />
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash @(isArabic ? "ms-1" : "me-1")"></i>@(isArabic ? "نعم، احذف" : "Yes, Delete")
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas @(isArabic ? "fa-arrow-right ms-1" : "fa-arrow-left me-1")"></i>@(isArabic ? "إلغاء" : "Cancel")
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

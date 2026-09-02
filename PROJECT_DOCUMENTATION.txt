@@ -1,0 +1,722 @@
+================================================================================
+                    CIVIL WEB - PROJECT DOCUMENTATION
+                    Civil Registry Management System
+================================================================================
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+Project Name:       CivilWeb
+Type:               ASP.NET Core MVC Web Application
+Framework:          .NET 10.0
+Database:           SQL Server (Civil2006)
+Purpose:            Civil Registry Management System for managing citizen records
+                    with search, filter, pagination, and Excel export features.
+
+Key Technologies:
+- ASP.NET Core MVC (Razor Views)
+- Entity Framework Core 10.0.1
+- SQL Server
+- ClosedXML (Excel export)
+- Bootstrap 5 (UI Framework) with RTL support
+- Font Awesome (Icons)
+- jQuery
+- Google Fonts (Cairo for Arabic, Inter for English)
+
+Key Features:
+- Full bilingual support (Arabic & English)
+- RTL/LTR layout switching
+- Cookie-based language persistence
+- Live search with AJAX
+- Pagination and sorting
+- Excel export
+- Dashboard with statistics
+
+================================================================================
+2. PROJECT STRUCTURE
+================================================================================
+
+CivilWeb/
+|
+|-- Controllers/                    [Controller files - handles HTTP requests]
+|   |-- HomeController.cs           Dashboard & statistics
+|   |-- CivilController.cs          CRUD operations for civil records
+|   |-- LanguageController.cs       Language switching (EN/AR)
+|
+|-- Models/                         [Data models - represents database tables]
+|   |-- CivilDatum.cs               Main civil record model (CivilData table)
+|   |-- Table1.cs                   Database view model (Table_1 view)
+|   |-- PaginatedList.cs            Helper for pagination
+|   |-- ErrorViewModel.cs           Error handling model
+|   |-- MyProdyct.cs                Product model (unused)
+|
+|-- Data/                           [Database context]
+|   |-- ApplicationDbContext.cs     Entity Framework DbContext configuration
+|
+|-- Views/                          [Razor views - HTML templates]
+|   |-- Home/
+|   |   |-- Index.cshtml            Dashboard page (bilingual)
+|   |   |-- Privacy.cshtml          Privacy policy page
+|   |
+|   |-- Civil/
+|   |   |-- Index.cshtml            List all records (bilingual)
+|   |   |-- Details.cshtml          View single record (bilingual)
+|   |   |-- Create.cshtml           Add new record form (bilingual)
+|   |   |-- Edit.cshtml             Edit existing record (bilingual)
+|   |   |-- Delete.cshtml           Delete confirmation (bilingual)
+|   |
+|   |-- Shared/
+|   |   |-- _Layout.cshtml          Main layout (bilingual, RTL/LTR)
+|   |   |-- Error.cshtml            Error page
+|   |   |-- _ValidationScriptsPartial.cshtml
+|   |
+|   |-- _ViewImports.cshtml         Global using directives for views
+|   |-- _ViewStart.cshtml           Default layout configuration
+|
+|-- wwwroot/                        [Static files - CSS, JS, images]
+|
+|-- Program.cs                      Application startup & configuration
+|-- appsettings.json                Configuration (database connection)
+|-- CivilWeb.csproj                 Project file (dependencies)
+|-- CreateIndexes.sql               SQL script for database indexes
+|-- PROJECT_DOCUMENTATION.txt       This file
+|-- IIS_DEPLOYMENT_GUIDE.txt        IIS deployment instructions
+
+================================================================================
+3. BILINGUAL SUPPORT (ARABIC/ENGLISH)
+================================================================================
+
+The application supports both Arabic and English languages with full RTL/LTR
+layout switching.
+
+-----------------------------------------------------------------------------
+3.1 How Language Switching Works
+-----------------------------------------------------------------------------
+
+1. User clicks language button (EN or ع) in the navbar
+2. Request goes to: /Language/Change?lang=ar (or lang=en)
+3. LanguageController sets a cookie named "Language" with value "ar" or "en"
+4. Cookie expires in 1 year
+5. User is redirected back to the previous page
+6. All views read the cookie and render content in the selected language
+
+-----------------------------------------------------------------------------
+3.2 LanguageController.cs
+-----------------------------------------------------------------------------
+
+File: Controllers/LanguageController.cs
+
+Code:
+    public class LanguageController : Controller
+    {
+        [HttpGet]
+        [Route("Language/Change")]
+        public IActionResult Change(string lang, string returnUrl = "/")
+        {
+            Response.Cookies.Append("Language", lang, new CookieOptions
+            {
+                Expires = DateTimeOffset.UtcNow.AddYears(1),
+                IsEssential = true
+            });
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+
+            return RedirectToAction("Index", "Home");
+        }
+    }
+
+-----------------------------------------------------------------------------
+3.3 View Language Pattern
+-----------------------------------------------------------------------------
+
+Every view uses this pattern at the top:
+
+    @{
+        var lang = Context.Request.Cookies["Language"] ?? "ar";
+        var isArabic = lang == "ar";
+        ViewData["Title"] = isArabic ? "العنوان بالعربي" : "English Title";
+    }
+
+For text content:
+    @(isArabic ? "نص عربي" : "English text")
+
+For icon positioning (margin):
+    <i class="fas fa-icon @(isArabic ? "ms-2" : "me-2")"></i>
+
+For back arrow direction:
+    <i class="fas @(isArabic ? "fa-arrow-right" : "fa-arrow-left")"></i>
+
+-----------------------------------------------------------------------------
+3.4 Layout RTL/LTR Support
+-----------------------------------------------------------------------------
+
+File: Views/Shared/_Layout.cshtml
+
+The layout dynamically switches between RTL and LTR:
+
+    @{
+        var lang = Context.Request.Cookies["Language"] ?? "ar";
+        var isArabic = lang == "ar";
+        var dir = isArabic ? "rtl" : "ltr";
+        var langCode = isArabic ? "ar" : "en";
+    }
+    <html lang="@langCode" dir="@dir">
+
+For Arabic:
+- Uses Bootstrap RTL CSS (bootstrap.rtl.min.css)
+- Uses Cairo font (Google Fonts)
+- HTML dir="rtl"
+
+For English:
+- Uses Bootstrap LTR CSS (bootstrap.min.css)
+- Uses Inter font (Google Fonts)
+- HTML dir="ltr"
+
+-----------------------------------------------------------------------------
+3.5 Language Switcher in Navbar
+-----------------------------------------------------------------------------
+
+Location: Views/Shared/_Layout.cshtml (around line 479)
+
+    <div class="lang-switcher">
+        <a href="@Url.Action("Change", "Language", new { lang = "en", returnUrl = currentUrl })"
+           class="@(lang == "en" ? "active" : "")">EN</a>
+        <a href="@Url.Action("Change", "Language", new { lang = "ar", returnUrl = currentUrl })"
+           class="@(lang == "ar" ? "active" : "")">ع</a>
+    </div>
+
+CSS for language switcher (in _Layout.cshtml styles):
+
+    .lang-switcher {
+        display: flex;
+        gap: 5px;
+        background: #f1f5f9;
+        padding: 4px;
+        border-radius: 8px;
+    }
+    .lang-switcher a {
+        padding: 6px 12px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+    .lang-switcher a.active {
+        background: var(--primary-color);
+        color: white;
+    }
+
+================================================================================
+4. DATABASE CONFIGURATION
+================================================================================
+
+Connection String Location: appsettings.json (Line 3)
+
+Current Configuration:
+- Server:    mwtahm.com
+- Database:  Civil2006
+- User:      dotnet
+- Password:  Pass@123
+
+To Change Database Connection:
+1. Open: appsettings.json
+2. Modify the "DefaultConnection" value
+3. Restart the application
+
+================================================================================
+5. DATABASE MODEL - CivilDatum (CivilData Table)
+================================================================================
+
+File: Models/CivilDatum.cs
+
+Fields (UPDATED SIZES for Arabic support):
++---------------------+-------------+------------------------------------------+
+| Property            | Type        | Description                              |
++---------------------+-------------+------------------------------------------+
+| Id                  | string      | Primary Key (max 10 chars)               |
+| FirstName           | string?     | First name (max 50 chars) - UPDATED      |
+| SecondName          | string?     | Father's name (max 50 chars) - UPDATED   |
+| ThirdName           | string?     | Grandfather's name (max 50 chars) - UPD  |
+| LastName            | string?     | Last name (max 50 chars) - UPDATED       |
+| FullName            | string?     | Full combined name (max 200 chars) - UPD |
+| RegistrationNumber  | string?     | Registration number (max 10 chars)       |
+| BirhtOfDate         | DateOnly?   | Date of birth                            |
+| Gender              | string?     | Gender value (max 10 chars)              |
+| Alive               | bool?       | Living status (true/false/null)          |
++---------------------+-------------+------------------------------------------+
+
+NOTE: Column sizes were increased to support Arabic names:
+- FirstName, SecondName, ThirdName, LastName: 10/11 -> 50 chars
+- FullName: 35 -> 200 chars
+
+SQL to update column sizes (run if needed):
+    ALTER TABLE CivilData ALTER COLUMN FirstName NVARCHAR(50);
+    ALTER TABLE CivilData ALTER COLUMN SecondName NVARCHAR(50);
+    ALTER TABLE CivilData ALTER COLUMN ThirdName NVARCHAR(50);
+    ALTER TABLE CivilData ALTER COLUMN LastName NVARCHAR(50);
+    ALTER TABLE CivilData ALTER COLUMN FullName NVARCHAR(200);
+
+================================================================================
+6. CONTROLLERS EXPLANATION
+================================================================================
+
+-----------------------------------------------------------------------------
+6.1 HomeController.cs (Controllers/HomeController.cs)
+-----------------------------------------------------------------------------
+
+Purpose: Displays dashboard with statistics
+
+Actions:
+- Index()     -> Dashboard page with statistics
+- Privacy()   -> Privacy policy page
+- Error()     -> Error handling page
+
+Dashboard Statistics Calculated (Lines 20-25):
+- totalRecords:  Total count of all records
+- maleCount:     Count of male records (Gender = "Male", "ذكر", etc.)
+- femaleCount:   Count of female records (Gender = "Female", "أنثى", etc.)
+- aliveCount:    Count of alive records (Alive = true)
+- deceasedCount: Count of deceased records (Alive = false)
+
+HOW TO MODIFY GENDER COUNT:
+Location: HomeController.cs, Lines 22-23
+
+Male count query checks for:
+- "Male" (English)
+- "ذكر" (Arabic with space)
+- "ذكر " (Arabic without space)
+- Trimmed version of "ذكر"
+
+Female count query checks for:
+- "Female" (English)
+- "أنثى" (Arabic with hamza)
+- "انثى" (Arabic without hamza)
+- "انثي" (Arabic with yaa)
+- "أنثي" (Arabic with hamza and yaa)
+- Any value containing "نث"
+
+TO ADD NEW GENDER VALUES:
+Add to the CountAsync query condition:
+c.Gender == "YOUR_VALUE" ||
+
+-----------------------------------------------------------------------------
+6.2 CivilController.cs (Controllers/CivilController.cs)
+-----------------------------------------------------------------------------
+
+Purpose: CRUD operations for civil records
+
+Actions:
++------------------+--------+------------------------------------------------+
+| Action           | Method | Description                                    |
++------------------+--------+------------------------------------------------+
+| Index            | GET    | List records with search, sort, pagination     |
+| Details/{id}     | GET    | View single record details                     |
+| Create           | GET    | Show create form                               |
+| Create           | POST   | Save new record                                |
+| Edit/{id}        | GET    | Show edit form                                 |
+| Edit/{id}        | POST   | Update existing record                         |
+| Delete/{id}      | GET    | Show delete confirmation                       |
+| DeleteConfirmed  | POST   | Delete record from database                    |
+| Export           | GET    | Export records to Excel file                   |
+| Search           | GET    | AJAX API for live search (returns JSON)        |
++------------------+--------+------------------------------------------------+
+
+SEARCH LOGIC (Lines 19-127):
+1. If searchId is provided -> Find person by ID, get their RegistrationNumber
+2. If searchName is provided -> Find person by name, get their RegistrationNumber
+3. If RegistrationNumber found -> Return ALL family members with same registration
+4. If no RegistrationNumber -> Return only matching records
+
+SORTING OPTIONS:
+- id, id_desc
+- firstname, firstname_desc
+- secondname, secondname_desc
+- thirdname, thirdname_desc
+- lastname, lastname_desc
+- fullname, fullname_desc
+- gender, gender_desc
+- birthdate, birthdate_desc
+- alive, alive_desc
+
+EXCEL EXPORT (Lines 248-348):
+- Uses ClosedXML library
+- Exports with headers: ID, First Name, Second Name, Third Name, Last Name,
+  Full Name, Registration Number, Birth Date, Gender, Alive
+- Maximum rows: 1,048,575 (Excel limit)
+
+-----------------------------------------------------------------------------
+6.3 LanguageController.cs (Controllers/LanguageController.cs) - NEW
+-----------------------------------------------------------------------------
+
+Purpose: Handle language switching between Arabic and English
+
+Actions:
++------------------+--------+------------------------------------------------+
+| Action           | Method | Description                                    |
++------------------+--------+------------------------------------------------+
+| Change           | GET    | Set language cookie and redirect               |
++------------------+--------+------------------------------------------------+
+
+Parameters:
+- lang: "ar" for Arabic, "en" for English
+- returnUrl: URL to redirect after changing language (default: "/")
+
+Cookie Details:
+- Name: "Language"
+- Value: "ar" or "en"
+- Expires: 1 year from now
+- IsEssential: true (works without cookie consent)
+
+================================================================================
+7. VIEWS EXPLANATION
+================================================================================
+
+-----------------------------------------------------------------------------
+7.1 Views/Shared/_Layout.cshtml - Main Layout (BILINGUAL)
+-----------------------------------------------------------------------------
+
+Contains:
+- Language detection from cookie
+- RTL/LTR switching based on language
+- Sidebar navigation (left side for LTR, right for RTL)
+- Top navbar with breadcrumbs
+- Language switcher (EN | ع)
+- Content area (@RenderBody())
+- Footer
+- External CSS/JS references (Bootstrap, Bootstrap RTL, Font Awesome, Google Fonts)
+- Custom CSS styles
+
+Menu Items (bilingual):
+- Dashboard / لوحة التحكم (Home/Index)
+- Civil Data / بيانات المواطنين (Civil/Index)
+- Add New Record / إضافة سجل جديد (Civil/Create)
+- Export Data / تصدير البيانات (Civil/Export)
+- Privacy Policy / سياسة الخصوصية (Home/Privacy)
+
+-----------------------------------------------------------------------------
+7.2 Views/Home/Index.cshtml - Dashboard (BILINGUAL)
+-----------------------------------------------------------------------------
+
+Statistics Cards:
+- Total Records (with link to Civil/Index)
+- Male Count (ذكر) with percentage
+- Female Count (أنثى) with percentage
+- Alive Count with percentage
+
+Quick Actions:
+- Add New Record
+- Search Records
+- Export to Excel
+
+Status Overview:
+- Alive progress bar
+- Deceased progress bar
+- Unknown progress bar
+
+Gender Distribution:
+- Male/Female side by side
+- Male:Female ratio
+
+Recent Records Table:
+- Shows last 5 records
+- Columns: ID, Full Name, Gender, Birth Date, Status, Actions
+
+-----------------------------------------------------------------------------
+7.3 Views/Civil/Index.cshtml - Records List (BILINGUAL)
+-----------------------------------------------------------------------------
+
+Features:
+- Live search by ID or Name (debounced AJAX)
+- Page size selector (10, 25, 50, 100)
+- Sortable columns
+- Pagination
+- Export to Excel button
+
+JavaScript Features (Lines 241-515):
+- Live search with 300ms debounce
+- AJAX data fetching from /Civil/Search endpoint
+- Dynamic table rendering
+- Dynamic pagination
+- Sort icon updates
+
+-----------------------------------------------------------------------------
+7.4 Views/Civil/Create.cshtml - Create Form (BILINGUAL)
+-----------------------------------------------------------------------------
+
+Form fields with bilingual labels:
+- ID / الرقم (required)
+- Registration Number / رقم التسجيل
+- First Name / الاسم الأول
+- Father's Name / اسم الأب
+- Grandfather's Name / اسم الجد
+- Last Name / اسم العائلة
+- Full Name / الاسم الكامل
+- Date of Birth / تاريخ الميلاد
+- Gender / الجنس (dropdown: Male/ذكر, Female/أنثى)
+- Status / الحالة (dropdown: Alive/حي, Deceased/متوفى)
+
+Help panel showing field requirements.
+
+-----------------------------------------------------------------------------
+7.5 Views/Civil/Edit.cshtml - Edit Form (BILINGUAL)
+-----------------------------------------------------------------------------
+
+Same as Create but:
+- ID field is readonly (displayed but not editable)
+- Shows warning panel about edit mode
+
+-----------------------------------------------------------------------------
+7.6 Views/Civil/Details.cshtml - View Details (BILINGUAL)
+-----------------------------------------------------------------------------
+
+Displays all record information in organized sections:
+- Identification (ID, Registration Number)
+- Status (Gender badge, Date of Birth)
+- Personal Information (all name fields)
+- Quick Stats sidebar (Record ID, Age calculation)
+
+Action buttons: Edit, Delete, Back to List
+
+-----------------------------------------------------------------------------
+7.7 Views/Civil/Delete.cshtml - Delete Confirmation (BILINGUAL)
+-----------------------------------------------------------------------------
+
+Shows:
+- Warning icon and message
+- Record summary (ID, Full Name, Gender, Status)
+- Confirm Delete button (danger)
+- Cancel button
+
+================================================================================
+8. HOW TO MAKE COMMON EDITS
+================================================================================
+
+-----------------------------------------------------------------------------
+8.1 Add a New Field to CivilDatum
+-----------------------------------------------------------------------------
+
+Step 1: Add property to Models/CivilDatum.cs
+    public string? NewField { get; set; }
+
+Step 2: Add column configuration in Data/ApplicationDbContext.cs (OnModelCreating)
+    entity.Property(e => e.NewField).HasMaxLength(50);
+
+Step 3: Update Views to display the new field (add bilingual support)
+    - Views/Civil/Index.cshtml
+    - Views/Civil/Details.cshtml
+    - Views/Civil/Create.cshtml
+    - Views/Civil/Edit.cshtml
+
+Step 4: Update CivilController.cs
+    - Add to [Bind] attributes in Create and Edit actions
+    - Add to Export columns if needed
+    - Add to Search JSON response if needed
+
+Step 5: Run database migration or update database schema
+
+-----------------------------------------------------------------------------
+8.2 Add a New Language
+-----------------------------------------------------------------------------
+
+To add a third language (e.g., French):
+
+Step 1: Update LanguageController to accept "fr"
+
+Step 2: Update _Layout.cshtml:
+    - Add condition for French font
+    - Add French Bootstrap CSS if RTL needed
+    - Add French button to language switcher
+
+Step 3: Update all views with trilingual support:
+    @{
+        var lang = Context.Request.Cookies["Language"] ?? "ar";
+        var isArabic = lang == "ar";
+        var isFrench = lang == "fr";
+    }
+    @(isArabic ? "عربي" : isFrench ? "Français" : "English")
+
+-----------------------------------------------------------------------------
+8.3 Change Gender Value Detection
+-----------------------------------------------------------------------------
+
+Location: Controllers/HomeController.cs, Lines 22-23
+
+To add new gender value for male:
+    c.Gender == "NEW_VALUE" ||
+
+To add new gender value for female:
+    c.Gender == "NEW_VALUE" ||
+
+Also update in Views (for display badges):
+- Views/Home/Index.cshtml
+- Views/Civil/Index.cshtml
+- Views/Civil/Details.cshtml
+- Views/Civil/Delete.cshtml
+
+-----------------------------------------------------------------------------
+8.4 Change Database Connection
+-----------------------------------------------------------------------------
+
+File: appsettings.json
+
+Change the DefaultConnection value:
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=YOUR_SERVER;Initial Catalog=YOUR_DB;User Id=YOUR_USER;Password=YOUR_PASS;TrustServerCertificate=true"
+  }
+}
+
+-----------------------------------------------------------------------------
+8.5 Add a New Page
+-----------------------------------------------------------------------------
+
+Step 1: Add action in HomeController.cs or CivilController.cs
+    public IActionResult NewPage()
+    {
+        return View();
+    }
+
+Step 2: Create view file with bilingual support
+    Views/Home/NewPage.cshtml or Views/Civil/NewPage.cshtml
+
+    @{
+        var lang = Context.Request.Cookies["Language"] ?? "ar";
+        var isArabic = lang == "ar";
+        ViewData["Title"] = isArabic ? "صفحة جديدة" : "New Page";
+    }
+
+Step 3: Add menu item in Views/Shared/_Layout.cshtml
+    <a asp-controller="Home" asp-action="NewPage">
+        <i class="fas fa-icon @(isArabic ? "ms-2" : "me-2")"></i>
+        @(isArabic ? "صفحة جديدة" : "New Page")
+    </a>
+
+-----------------------------------------------------------------------------
+8.6 Change Page Styling
+-----------------------------------------------------------------------------
+
+Main CSS is in: Views/Shared/_Layout.cshtml (Lines 39-373)
+
+Key CSS variables (Lines 40-52):
+--primary-color:   #4361ee  (main blue color)
+--sidebar-bg:      #1e293b  (sidebar background)
+--body-bg:         #f1f5f9  (page background)
+--card-bg:         #ffffff  (card background)
+
+================================================================================
+9. COMMON FILE LOCATIONS QUICK REFERENCE
+================================================================================
+
++----------------------------------------+-------------------------------------+
+| What You Want to Edit                  | File Location                       |
++----------------------------------------+-------------------------------------+
+| Dashboard statistics                   | Controllers/HomeController.cs       |
+| Gender count logic                     | Controllers/HomeController.cs:22-23 |
+| Search/Filter logic                    | Controllers/CivilController.cs      |
+| Language switching                     | Controllers/LanguageController.cs   |
+| Excel export format                    | Controllers/CivilController.cs:248  |
+| Database model                         | Models/CivilDatum.cs                |
+| Database connection                    | appsettings.json                    |
+| Entity Framework config                | Data/ApplicationDbContext.cs        |
+| Main layout (sidebar, header, RTL)     | Views/Shared/_Layout.cshtml         |
+| Language switcher UI                   | Views/Shared/_Layout.cshtml:479     |
+| Dashboard page                         | Views/Home/Index.cshtml             |
+| Records list page                      | Views/Civil/Index.cshtml            |
+| Create record form                     | Views/Civil/Create.cshtml           |
+| Edit record form                       | Views/Civil/Edit.cshtml             |
+| View record details                    | Views/Civil/Details.cshtml          |
+| Delete confirmation                    | Views/Civil/Delete.cshtml           |
+| Application startup                    | Program.cs                          |
+| Project dependencies                   | CivilWeb.csproj                     |
++----------------------------------------+-------------------------------------+
+
+================================================================================
+10. RUNNING THE PROJECT
+================================================================================
+
+Development Mode:
+    cd "C:\Users\Administrator\civil web\CivilWeb"
+    dotnet run
+
+Production Build:
+    dotnet publish -c Release -o publish
+
+Copy to IIS:
+    1. Stop app pool: Stop-WebAppPool -Name 'CivilWebPool'
+    2. Copy files: Copy-Item -Path 'publish\*' -Destination 'C:\inetpub\wwwroot\CivilWeb\' -Recurse -Force
+    3. Start app pool: Start-WebAppPool -Name 'CivilWebPool'
+
+Default URLs:
+- Development: https://localhost:5001 or http://localhost:5000
+- IIS: https://localhost:7014 or https://mabbady.com:7014
+
+================================================================================
+11. TROUBLESHOOTING
+================================================================================
+
+Problem: Language not switching
+Solution:
+1. Check if LanguageController is compiled (dotnet build)
+2. Verify cookie is being set (browser dev tools -> Application -> Cookies)
+3. Check URL is correct: /Language/Change?lang=ar
+
+Problem: RTL layout not working
+Solution:
+1. Check html tag has dir="rtl" attribute
+2. Verify Bootstrap RTL CSS is loading for Arabic
+3. Clear browser cache
+
+Problem: Female count shows 0
+Solution: Check what gender values exist in database:
+    SELECT DISTINCT Gender, COUNT(*) FROM CivilData GROUP BY Gender
+Then add matching values to HomeController.cs Line 23
+
+Problem: Search not working
+Solution:
+1. Check browser console for JavaScript errors
+2. Verify /Civil/Search endpoint returns data
+3. Check database connection in appsettings.json
+
+Problem: Excel export fails
+Solution:
+1. Check if ClosedXML package is installed
+2. Verify data doesn't exceed 1,048,575 rows
+3. Check server memory for large exports
+
+Problem: Page loads slowly
+Solution:
+1. Run CreateIndexes.sql to add database indexes
+2. Reduce default page size
+3. Add AsNoTracking() to read-only queries
+
+Problem: Arabic text truncated in database
+Solution: Column sizes may be too small. Run:
+    ALTER TABLE CivilData ALTER COLUMN FirstName NVARCHAR(50);
+    ALTER TABLE CivilData ALTER COLUMN LastName NVARCHAR(50);
+    ALTER TABLE CivilData ALTER COLUMN FullName NVARCHAR(200);
+
+================================================================================
+12. VERSION HISTORY
+================================================================================
+
+Version 1.0 - Initial Release
+- Basic CRUD operations
+- Search and pagination
+- Excel export
+- Dashboard statistics
+
+Version 2.0 - Bilingual Update
+- Added Arabic language support
+- Added English language support
+- RTL/LTR layout switching
+- Language switcher in navbar
+- Cookie-based language persistence
+- All views updated for bilingual support
+- Database column sizes increased for Arabic names
+- LanguageController added
+
+================================================================================
+                           END OF DOCUMENTATION
+================================================================================

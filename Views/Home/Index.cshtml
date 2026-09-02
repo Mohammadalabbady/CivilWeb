@@ -1,0 +1,915 @@
+@using CivilWeb.Models
+@{
+    var lang = Context.Request.Cookies["Language"] ?? "ar";
+    var isArabic = lang == "ar";
+    ViewData["Title"] = isArabic ? "لوحة التحكم" : "Dashboard";
+    var totalRecords = (int)(ViewData["TotalRecords"] ?? 0);
+    var maleCount = (int)(ViewData["MaleCount"] ?? 0);
+    var femaleCount = (int)(ViewData["FemaleCount"] ?? 0);
+    var aliveCount = (int)(ViewData["AliveCount"] ?? 0);
+    var deceasedCount = (int)(ViewData["DeceasedCount"] ?? 0);
+    var recentRecords = ViewData["RecentRecords"] as List<CivilDatum> ?? new List<CivilDatum>();
+
+    // Calculate percentages
+    var malePercent = totalRecords > 0 ? (maleCount * 100.0 / totalRecords) : 0;
+    var femalePercent = totalRecords > 0 ? (femaleCount * 100.0 / totalRecords) : 0;
+    var alivePercent = totalRecords > 0 ? (aliveCount * 100.0 / totalRecords) : 0;
+    var deceasedPercent = totalRecords > 0 ? (deceasedCount * 100.0 / totalRecords) : 0;
+    var unknownCount = totalRecords - aliveCount - deceasedCount;
+    var unknownPercent = totalRecords > 0 ? (unknownCount * 100.0 / totalRecords) : 0;
+}
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        --warning-gradient: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+        --card-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        --card-hover-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        --border-radius: 16px;
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Page Header */
+    .page-header {
+        background: var(--primary-gradient);
+        border-radius: var(--border-radius);
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .page-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+        animation: pulse 4s ease-in-out infinite;
+    }
+
+    @@keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 0.5; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+    }
+
+    .page-header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .page-header p {
+        margin: 0;
+        opacity: 0.9;
+        position: relative;
+        z-index: 1;
+        font-size: 1.1rem;
+    }
+
+    .page-header .header-icon {
+        position: absolute;
+        top: 50%;
+        @(isArabic ? "left" : "right"): 2.5rem;
+        transform: translateY(-50%);
+        font-size: 5rem;
+        opacity: 0.15;
+        z-index: 0;
+    }
+
+    /* Section Title */
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .section-title i {
+        color: #667eea;
+        font-size: 1.25rem;
+    }
+
+    .section-title::after {
+        content: '';
+        flex: 1;
+        height: 2px;
+        background: linear-gradient(90deg, #e9ecef 0%, transparent 100%);
+        margin-left: 1rem;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        box-shadow: var(--card-shadow);
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--card-hover-shadow);
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+    }
+
+    .stat-card.primary::before { background: var(--primary-gradient); }
+    .stat-card.info::before { background: var(--info-gradient); }
+    .stat-card.pink::before { background: var(--secondary-gradient); }
+    .stat-card.success::before { background: var(--success-gradient); }
+
+    .stat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    .stat-icon.primary { background: var(--primary-gradient); }
+    .stat-icon.info { background: var(--info-gradient); }
+    .stat-icon.pink { background: var(--secondary-gradient); }
+    .stat-icon.success { background: var(--success-gradient); }
+
+    .stat-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 20px;
+        font-weight: 600;
+        background: rgba(17, 153, 142, 0.1);
+        color: #11998e;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #1a1a2e;
+        line-height: 1;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .stat-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e9ecef;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #667eea;
+        text-decoration: none;
+        transition: var(--transition);
+    }
+
+    .stat-link:hover {
+        color: #764ba2;
+    }
+
+    /* Cards Grid */
+    .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Quick Actions Card */
+    .action-card {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+    }
+
+    .action-header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        padding: 1.25rem 1.5rem;
+        color: white;
+    }
+
+    .action-header h5 {
+        margin: 0;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .action-body {
+        padding: 1.5rem;
+    }
+
+    .action-btn {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 12px;
+        text-decoration: none;
+        color: #1a1a2e;
+        transition: var(--transition);
+        margin-bottom: 0.75rem;
+        background: #f8f9fa;
+        border: 2px solid transparent;
+    }
+
+    .action-btn:last-child {
+        margin-bottom: 0;
+    }
+
+    .action-btn:hover {
+        background: white;
+        border-color: #667eea;
+        color: #667eea;
+        transform: translateX(@(isArabic ? "-5px" : "5px"));
+    }
+
+    .action-btn-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .action-btn-icon.primary { background: var(--primary-gradient); }
+    .action-btn-icon.success { background: var(--success-gradient); }
+    .action-btn-icon.info { background: var(--info-gradient); }
+
+    .action-btn-text {
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    /* Overview Card */
+    .overview-card {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+    }
+
+    .overview-header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        padding: 1.25rem 1.5rem;
+        color: white;
+    }
+
+    .overview-header h5 {
+        margin: 0;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .overview-body {
+        padding: 1.5rem;
+    }
+
+    .overview-item {
+        margin-bottom: 1.25rem;
+    }
+
+    .overview-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .overview-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .overview-item-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+
+    .overview-item-value {
+        font-weight: 700;
+    }
+
+    .overview-bar {
+        height: 10px;
+        background: #e9ecef;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .overview-bar-fill {
+        height: 100%;
+        border-radius: 10px;
+        transition: width 1.5s ease-out;
+    }
+
+    .overview-bar-fill.success { background: var(--success-gradient); }
+    .overview-bar-fill.secondary { background: linear-gradient(135deg, #6c757d 0%, #adb5bd 100%); }
+    .overview-bar-fill.warning { background: var(--warning-gradient); }
+
+    /* Gender Card */
+    .gender-card {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+    }
+
+    .gender-header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        padding: 1.25rem 1.5rem;
+        color: white;
+    }
+
+    .gender-header h5 {
+        margin: 0;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .gender-body {
+        padding: 1.5rem;
+    }
+
+    .gender-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        text-align: center;
+    }
+
+    .gender-stat {
+        padding: 1rem;
+        border-radius: 12px;
+        background: #f8f9fa;
+    }
+
+    .gender-stat.male {
+        border: 2px solid rgba(79, 172, 254, 0.3);
+    }
+
+    .gender-stat.female {
+        border: 2px solid rgba(240, 147, 251, 0.3);
+    }
+
+    .gender-stat-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .gender-stat-icon.male { color: #4facfe; }
+    .gender-stat-icon.female { color: #f093fb; }
+
+    .gender-stat-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #1a1a2e;
+    }
+
+    .gender-stat-label {
+        font-size: 0.85rem;
+        color: #6c757d;
+        font-weight: 500;
+    }
+
+    .gender-ratio {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e9ecef;
+        text-align: center;
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .gender-ratio strong {
+        color: #667eea;
+    }
+
+    /* Recent Records Card */
+    .records-card {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        overflow: hidden;
+    }
+
+    .records-header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        padding: 1.25rem 1.5rem;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .records-header h5 {
+        margin: 0;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .records-header-link {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: var(--transition);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .records-header-link:hover {
+        background: white;
+        color: #1a1a2e;
+    }
+
+    /* Modern Table */
+    .modern-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .modern-table thead {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+
+    .modern-table thead th {
+        padding: 1rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #495057;
+        border-bottom: 2px solid #dee2e6;
+        white-space: nowrap;
+    }
+
+    .modern-table tbody tr {
+        transition: var(--transition);
+    }
+
+    .modern-table tbody tr:hover {
+        background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+    }
+
+    .modern-table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f3f4;
+        font-size: 0.9rem;
+        color: #1a1a2e;
+    }
+
+    .modern-table .id-cell {
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+        color: #667eea;
+        font-size: 0.85rem;
+    }
+
+    /* Badges */
+    .badge-modern {
+        padding: 0.4rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .badge-male { background: var(--info-gradient); color: white; }
+    .badge-female { background: var(--secondary-gradient); color: white; }
+    .badge-alive { background: var(--success-gradient); color: white; }
+    .badge-deceased { background: linear-gradient(135deg, #6c757d 0%, #adb5bd 100%); color: white; }
+    .badge-unknown { background: var(--warning-gradient); color: white; }
+
+    /* Action Buttons */
+    .action-btns {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+
+    .action-btn-sm {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+        font-size: 0.9rem;
+        text-decoration: none;
+    }
+
+    .action-btn-sm.view {
+        background: var(--info-gradient);
+        color: white;
+    }
+
+    .action-btn-sm.edit {
+        background: var(--secondary-gradient);
+        color: white;
+    }
+
+    .action-btn-sm:hover {
+        transform: scale(1.1);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: #dee2e6;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+        color: #6c757d;
+        margin: 0;
+    }
+
+    /* Responsive */
+    @@media (max-width: 1199.98px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 991.98px) {
+        .cards-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 767.98px) {
+        .page-header {
+            padding: 1.5rem;
+        }
+
+        .page-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .page-header .header-icon {
+            display: none;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .stat-card {
+            padding: 1.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 1.25rem;
+        }
+
+        .modern-table thead th,
+        .modern-table tbody td {
+            padding: 0.75rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        .hide-mobile {
+            display: none !important;
+        }
+    }
+</style>
+
+<!-- Page Header -->
+<div class="page-header">
+    <i class="fas fa-chart-line header-icon"></i>
+    <h1><i class="fas fa-tachometer-alt @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "مرحباً بك في نظام السجل المدني" : "Welcome to Civil Registry System")</h1>
+    <p>@(isArabic ? "إدارة السجلات المدنية بكفاءة من خلال نظام الإدارة الشامل" : "Manage civil records efficiently with our comprehensive management system")</p>
+</div>
+
+<!-- Statistics Section -->
+<h4 class="section-title">
+    <i class="fas fa-chart-pie"></i>
+    @(isArabic ? "إحصائيات سريعة" : "Quick Statistics")
+</h4>
+
+<div class="stats-grid">
+    <!-- Total Records -->
+    <div class="stat-card primary">
+        <div class="stat-header">
+            <div class="stat-icon primary">
+                <i class="fas fa-database"></i>
+            </div>
+        </div>
+        <div class="stat-value">@totalRecords.ToString("N0")</div>
+        <div class="stat-label">@(isArabic ? "إجمالي السجلات" : "Total Records")</div>
+        <a href="/Civil/Index" class="stat-link">
+            @(isArabic ? "عرض جميع السجلات" : "View All Records")
+            <i class="fas @(isArabic ? "fa-arrow-left" : "fa-arrow-right")"></i>
+        </a>
+    </div>
+
+    <!-- Male Count -->
+    <div class="stat-card info">
+        <div class="stat-header">
+            <div class="stat-icon info">
+                <i class="fas fa-mars"></i>
+            </div>
+            <span class="stat-badge">@malePercent.ToString("0.0")%</span>
+        </div>
+        <div class="stat-value">@maleCount.ToString("N0")</div>
+        <div class="stat-label">@(isArabic ? "ذكور" : "Males")</div>
+    </div>
+
+    <!-- Female Count -->
+    <div class="stat-card pink">
+        <div class="stat-header">
+            <div class="stat-icon pink">
+                <i class="fas fa-venus"></i>
+            </div>
+            <span class="stat-badge">@femalePercent.ToString("0.0")%</span>
+        </div>
+        <div class="stat-value">@femaleCount.ToString("N0")</div>
+        <div class="stat-label">@(isArabic ? "إناث" : "Females")</div>
+    </div>
+
+    <!-- Alive Count -->
+    <div class="stat-card success">
+        <div class="stat-header">
+            <div class="stat-icon success">
+                <i class="fas fa-heart-pulse"></i>
+            </div>
+            <span class="stat-badge">@alivePercent.ToString("0.0")%</span>
+        </div>
+        <div class="stat-value">@aliveCount.ToString("N0")</div>
+        <div class="stat-label">@(isArabic ? "على قيد الحياة" : "Alive")</div>
+    </div>
+</div>
+
+<!-- Cards Grid -->
+<div class="cards-grid">
+    <!-- Quick Actions -->
+    <div class="action-card">
+        <div class="action-header">
+            <h5><i class="fas fa-bolt @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "إجراءات سريعة" : "Quick Actions")</h5>
+        </div>
+        <div class="action-body">
+            <a href="/Civil/Create" class="action-btn">
+                <div class="action-btn-icon primary">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <span class="action-btn-text">@(isArabic ? "إضافة سجل جديد" : "Add New Record")</span>
+            </a>
+            <a href="/Civil/Index" class="action-btn">
+                <div class="action-btn-icon info">
+                    <i class="fas fa-search"></i>
+                </div>
+                <span class="action-btn-text">@(isArabic ? "البحث في السجلات" : "Search Records")</span>
+            </a>
+            <a href="/Civil/Export" class="action-btn">
+                <div class="action-btn-icon success">
+                    <i class="fas fa-file-excel"></i>
+                </div>
+                <span class="action-btn-text">@(isArabic ? "تصدير إلى Excel" : "Export to Excel")</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Status Overview -->
+    <div class="overview-card">
+        <div class="overview-header">
+            <h5><i class="fas fa-chart-bar @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "نظرة عامة على الحالة" : "Status Overview")</h5>
+        </div>
+        <div class="overview-body">
+            <div class="overview-item">
+                <div class="overview-item-header">
+                    <span class="overview-item-label">
+                        <i class="fas fa-heart" style="color: #11998e;"></i>
+                        @(isArabic ? "على قيد الحياة" : "Alive")
+                    </span>
+                    <span class="overview-item-value" style="color: #11998e;">@aliveCount.ToString("N0")</span>
+                </div>
+                <div class="overview-bar">
+                    <div class="overview-bar-fill success" style="width: @alivePercent%"></div>
+                </div>
+            </div>
+            <div class="overview-item">
+                <div class="overview-item-header">
+                    <span class="overview-item-label">
+                        <i class="fas fa-ribbon" style="color: #6c757d;"></i>
+                        @(isArabic ? "متوفى" : "Deceased")
+                    </span>
+                    <span class="overview-item-value" style="color: #6c757d;">@deceasedCount.ToString("N0")</span>
+                </div>
+                <div class="overview-bar">
+                    <div class="overview-bar-fill secondary" style="width: @deceasedPercent%"></div>
+                </div>
+            </div>
+            <div class="overview-item">
+                <div class="overview-item-header">
+                    <span class="overview-item-label">
+                        <i class="fas fa-question" style="color: #f59e0b;"></i>
+                        @(isArabic ? "غير معروف" : "Unknown")
+                    </span>
+                    <span class="overview-item-value" style="color: #f59e0b;">@unknownCount.ToString("N0")</span>
+                </div>
+                <div class="overview-bar">
+                    <div class="overview-bar-fill warning" style="width: @unknownPercent%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gender Distribution -->
+    <div class="gender-card">
+        <div class="gender-header">
+            <h5><i class="fas fa-venus-mars @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "توزيع الجنس" : "Gender Distribution")</h5>
+        </div>
+        <div class="gender-body">
+            <div class="gender-stats">
+                <div class="gender-stat male">
+                    <div class="gender-stat-icon male">
+                        <i class="fas fa-mars"></i>
+                    </div>
+                    <div class="gender-stat-value">@maleCount.ToString("N0")</div>
+                    <div class="gender-stat-label">@(isArabic ? "ذكور" : "Males")</div>
+                </div>
+                <div class="gender-stat female">
+                    <div class="gender-stat-icon female">
+                        <i class="fas fa-venus"></i>
+                    </div>
+                    <div class="gender-stat-value">@femaleCount.ToString("N0")</div>
+                    <div class="gender-stat-label">@(isArabic ? "إناث" : "Females")</div>
+                </div>
+            </div>
+            <div class="gender-ratio">
+                @(isArabic ? "النسبة:" : "Ratio:") <strong>@(femaleCount > 0 ? ((double)maleCount / femaleCount).ToString("F2") : "N/A") : 1</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Records Section -->
+<h4 class="section-title">
+    <i class="fas fa-clock"></i>
+    @(isArabic ? "أحدث السجلات" : "Recent Records")
+</h4>
+
+<div class="records-card">
+    <div class="records-header">
+        <h5><i class="fas fa-list @(isArabic ? "ms-2" : "me-2")"></i>@(isArabic ? "آخر السجلات المضافة" : "Latest Added Records")</h5>
+        <a href="/Civil/Index" class="records-header-link">
+            @(isArabic ? "عرض الكل" : "View All")
+            <i class="fas @(isArabic ? "fa-arrow-left" : "fa-arrow-right")"></i>
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="modern-table">
+            <thead>
+                <tr>
+                    <th>@(isArabic ? "الرقم الوطني" : "National ID")</th>
+                    <th>@(isArabic ? "الاسم الكامل" : "Full Name")</th>
+                    <th class="hide-mobile">@(isArabic ? "الجنس" : "Gender")</th>
+                    <th class="hide-mobile">@(isArabic ? "تاريخ الميلاد" : "Birth Date")</th>
+                    <th>@(isArabic ? "الحالة" : "Status")</th>
+                    <th class="text-center">@(isArabic ? "إجراءات" : "Actions")</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!recentRecords.Any())
+                {
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <p>@(isArabic ? "لا توجد سجلات" : "No records found")</p>
+                            </div>
+                        </td>
+                    </tr>
+                }
+                @foreach (var item in recentRecords)
+                {
+                    <tr>
+                        <td class="id-cell">@item.Id</td>
+                        <td><strong>@(item.FullName ?? (isArabic ? "غير متاح" : "N/A"))</strong></td>
+                        <td class="hide-mobile">
+                            @if (item.Gender == "Male" || item.Gender == "ذكر" || (item.Gender != null && item.Gender.Trim() == "ذكر"))
+                            {
+                                <span class="badge-modern badge-male"><i class="fas fa-mars"></i>@(isArabic ? "ذكر" : "Male")</span>
+                            }
+                            else if (item.Gender == "Female" || item.Gender == "أنثى" || (item.Gender != null && item.Gender.Trim() == "أنثى"))
+                            {
+                                <span class="badge-modern badge-female"><i class="fas fa-venus"></i>@(isArabic ? "أنثى" : "Female")</span>
+                            }
+                            else
+                            {
+                                <span class="badge-modern" style="background:#6c757d;color:white;">@item.Gender</span>
+                            }
+                        </td>
+                        <td class="hide-mobile">@(item.BirhtOfDate?.ToString("yyyy-MM-dd") ?? (isArabic ? "غير متاح" : "N/A"))</td>
+                        <td>
+                            @if (item.Alive == true)
+                            {
+                                <span class="badge-modern badge-alive"><i class="fas fa-heart"></i>@(isArabic ? "حي" : "Alive")</span>
+                            }
+                            else if (item.Alive == false)
+                            {
+                                <span class="badge-modern badge-deceased"><i class="fas fa-ribbon"></i>@(isArabic ? "متوفى" : "Deceased")</span>
+                            }
+                            else
+                            {
+                                <span class="badge-modern badge-unknown"><i class="fas fa-question"></i>@(isArabic ? "غير معروف" : "Unknown")</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="action-btns">
+                                <a href="/Civil/Details/@item.Id" class="action-btn-sm view" title="@(isArabic ? "عرض" : "View")">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="/Civil/Edit/@item.Id" class="action-btn-sm edit" title="@(isArabic ? "تعديل" : "Edit")">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
